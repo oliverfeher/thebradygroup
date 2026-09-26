@@ -1,0 +1,86 @@
+---
+import Base from '../../layouts/Base.astro';
+import ListingGrid from '../../components/ListingGrid.astro';
+import LeadForm from '../../components/LeadForm.astro';
+import { AREAS, SITE, type Area } from '../../data/site';
+
+export function getStaticPaths() {
+  return AREAS.map((a) => ({ params: { slug: a.slug }, props: { a } }));
+}
+const { a } = Astro.props as { a: Area };
+const faqs: [string, string][] = [
+  a.faq,
+  [`How do I find out what my ${a.name} home is worth?`, `Request a home valuation. Devin will send a written market analysis within 48 hours, based on recent sales in ${a.name}, not an online estimate.`],
+  [`Can Devin show me homes in ${a.name} that aren't his listings?`, `Yes. As your buyer's agent he can show you any home listed on the MLS in ${a.name} and the surrounding area.`],
+];
+const url = `${SITE.url}/areas/${a.slug}/`;
+const jsonLd = [
+  { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs.map(([q, ans]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: ans } })) },
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [['Home', `${SITE.url}/`], ['Areas', `${SITE.url}/areas/`], [a.name, url]].map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) },
+];
+const others = AREAS.filter((x) => x.slug !== a.slug);
+---
+<Base title={a.title} description={a.meta} active="Areas" jsonLd={jsonLd} image={a.photo}>
+  <nav class="wrap crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><a href="/areas/">Areas</a><span>/</span><span aria-current="page">{a.name}</span></nav>
+
+  <section class="wrap split center" style="padding-top:40px;padding-bottom:80px">
+    <div class="stack" style="gap:24px">
+      <p class="eyebrow">Real estate in {a.name}</p>
+      <h1 class="display">{a.h1}</h1>
+      <p class="lede" style="max-width:520px">{a.blurb}</p>
+      <div class="btn-row"><a class="btn" href="#alerts">Get new listings</a><a class="btn btn-outline" href={SITE.phoneHref}>{SITE.phone}</a></div>
+    </div>
+    {a.photo && <img src={a.photo} alt={`${a.name}, NC`} style="width:100%;aspect-ratio:4/3;object-fit:cover">}
+  </section>
+
+  <section class="wrap">
+    <dl class="facts" style="margin:0">{a.facts.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+  </section>
+
+  <section class="wrap section">
+    <div class="head-row" style="margin-bottom:40px">
+      <h2 class="h2" style="font-size:clamp(32px,4vw,44px)">Listings in {a.name}</h2>
+      <a class="link" href="/listings/">All listings →</a>
+    </div>
+    <ListingGrid cities={a.cities} limit={3}>
+      <p class="body" style="max-width:560px">No listings from Devin in {a.name} right now. He can show you any home on the market here and send new ones as they come up.</p>
+      <a class="link" href="#alerts">Get {a.name} alerts</a>
+    </ListingGrid>
+  </section>
+
+  <section class="rule-top">
+    <div class="wrap section split">
+      <div class="stack">
+        <h2 class="h2" style="font-size:clamp(32px,4vw,44px)">Living in {a.name}</h2>
+        {a.body.map((p) => <p class="body">{p}</p>)}
+      </div>
+      <div class="stack" style="gap:18px">
+        <p class="eyebrow">{a.hoodsLabel}</p>
+        <ul class="rule-list">{a.hoods.map((h) => <li>{h}</li>)}</ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="rule-top">
+    <div class="wrap section split">
+      <h2 class="h2" style="font-size:clamp(32px,4vw,44px)">{a.name} questions</h2>
+      <div class="faq">{faqs.map(([q, ans]) => <details><summary>{q}</summary><p>{ans}</p></details>)}</div>
+    </div>
+  </section>
+
+  <section id="alerts" class="navy" style="scroll-margin-top:24px">
+    <div class="wrap section split center">
+      <div class="stack" style="gap:16px">
+        <p class="eyebrow">Listing alerts</p>
+        <h2 class="h2" style="font-size:clamp(32px,4vw,44px)">New {a.name} homes, sent to you</h2>
+        <p class="body">Tell Devin what you're looking for. He'll text or email matches as soon as they hit the market.</p>
+      </div>
+      <LeadForm kind="alerts" area={a.name} />
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top:64px;padding-bottom:64px;display:grid;gap:20px">
+    <p class="eyebrow">Nearby areas</p>
+    <nav class="pill-links" aria-label="Nearby areas">{others.map((o) => <a href={`/areas/${o.slug}/`}>{o.name}</a>)}</nav>
+  </section>
+</Base>

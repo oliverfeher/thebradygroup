@@ -1,0 +1,45 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../data/site';
+const promises = [
+  ['Priced with care', 'Pricing is based on recent local sales and a walk through the home, not an online estimate.'],
+  ['Presented properly', 'Professional photography, clear listing copy and advice on what’s worth fixing before you list.'],
+  ['Negotiated with discipline', 'Calm, prepared negotiation from the first offer through inspection and appraisal.'],
+];
+import Steps from '../components/Steps.astro';
+---
+<Base title="About Devin Brady" active="About" description="Devin Brady is a REALTOR® and U.S. Air Force veteran in Goldsboro, NC, serving buyers, sellers and military families across Wayne County and the Triangle.">
+  <section class="photo-split" style="border-top:0">
+    <div class="photo" style="background-image:url(/assets/devin-headshot.png);min-height:600px" role="img" aria-label="Devin Brady"></div>
+    <div class="text">
+      <p class="eyebrow">About</p>
+      <h1 class="display">Devin Brady, REALTOR®</h1>
+      <p class="body" style="font-size:18px">Devin is a U.S. Air Force veteran and the REALTOR® behind The Brady Group. He's based in Goldsboro and works with buyers, sellers and military families across Wayne County and the Triangle.</p>
+      <p class="body" style="font-size:18px">He brings the same habits from the service to every transaction: a clear plan, steady communication and follow-through. You'll always know what happens next and why.</p>
+      <div class="btn-row"><a class="btn" href="/contact/">Talk with Devin</a><a class="btn btn-outline" href={SITE.phoneHref}>{SITE.phone}</a></div>
+    </div>
+  </section>
+
+  <section class="rule-top">
+    <div class="wrap section">
+      <p class="eyebrow" style="margin-bottom:18px">How Devin works</p>
+      <h2 class="h2" style="margin-bottom:56px">Three promises</h2>
+      <Steps steps={promises} />
+    </div>
+  </section>
+
+  <section class="navy">
+    <div class="wrap section split center">
+      <div class="stack" style="gap:18px"><p class="eyebrow">Military families</p><h2 class="h2">A veteran who knows the process</h2></div>
+      <div class="stack" style="justify-items:start">
+        <p class="body" style="font-size:18px">Devin knows what orders, report dates and VA loans mean for a home search. If you're coming to Seymour Johnson AFB, he'll build the plan around your timeline.</p>
+        <a class="btn" href="/military/">Military moves</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top:80px;padding-bottom:80px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:32px">
+    <div class="stack" style="gap:10px"><p class="eyebrow">Brokerage</p><p class="body">The Brady Group is brokered by {SITE.brokerage}.</p></div>
+    <img src="/assets/firm-nc.png" alt="The Firm NC" style="height:56px;width:auto">
+  </section>
+</Base>

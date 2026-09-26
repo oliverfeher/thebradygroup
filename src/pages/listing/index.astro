@@ -1,0 +1,95 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Listing" active="Listings" description="Listing details from The Brady Group, Goldsboro, NC.">
+  <section class="wrap" style="padding-top:40px;padding-bottom:96px">
+    <a href="/listings/" class="eyebrow" style="display:inline-block;margin-bottom:32px">← All listings</a>
+    <div id="listing" aria-live="polite">
+      <div class="detail" aria-hidden="true">
+        <div class="gallery-main card-skel"></div>
+        <div class="stack"><div class="skel w40" style="height:44px"></div><div class="skel w80" style="height:28px"></div><div class="skel w60"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rule-top" id="more-wrap">
+    <div class="wrap section">
+      <div class="head-row" style="margin-bottom:40px">
+        <h2 class="h2" style="font-size:clamp(30px,3.6vw,40px)">More listings</h2>
+        <a class="link" href="/listings/">All listings →</a>
+      </div>
+      <div class="cards" id="more"></div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  import { esc, money, fetchListings, cardHTML, type Listing } from '../../lib/listings';
+  const root = document.getElementById('listing')!;
+  const id = new URLSearchParams(location.search).get('id') || '';
+
+  const notFound = () => {
+    root.innerHTML = `<div class="stack" style="padding:48px 0;max-width:560px"><h1 class="h2">This listing isn't available</h1><p class="body">It may have sold or been removed. See Devin's current listings, or call 316-730-3642.</p><div><a class="btn" href="/listings/">View listings</a></div></div>`;
+  };
+
+  function render(l: Listing) {
+    const photos = l.photos || [];
+    const title = `${l.street}, ${l.city}`;
+    document.title = `${title} | The Brady Group`;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', `${l.status}: ${title}. ${money(l.price)}. Listed by Devin Brady, The Brady Group.`);
+    const fact = (k: string, v: unknown) => `<div><dt>${k}</dt><dd>${v ? esc(k === 'Sq ft' ? Number(v).toLocaleString('en-US') : v) : '—'}</dd></div>`;
+    root.innerHTML = `
+      <div class="detail">
+        <div class="gallery">
+          <div class="gallery-main">${photos[0] ? `<img id="main-photo" src="${esc(photos[0])}" alt="${esc(title)}">` : ''}<span class="tag" data-s="${esc(l.status)}">${esc(l.status)}</span></div>
+          ${photos.length > 1 ? `<div class="thumbs">${photos.map((p, i) => `<button type="button" data-i="${i}" aria-current="${i === 0}" aria-label="Photo ${i + 1}" style="background-image:url('${esc(p)}')"></button>`).join('')}</div>` : ''}
+        </div>
+        <div class="stack" style="gap:28px">
+          <div class="stack" style="gap:12px">
+            <div class="detail-price">${money(l.price)}</div>
+            <h1 class="h3">${esc(l.street)}</h1>
+            <div style="font:600 15px/1.4 var(--sans);color:var(--brown)">${esc(l.city)}</div>
+          </div>
+          <dl class="detail-facts">${fact('Beds', l.beds)}${fact('Baths', l.baths)}${fact('Sq ft', l.sqft)}</dl>
+          <div class="btn-row">
+            ${l.zillow_url ? `<a class="btn" href="${esc(l.zillow_url)}" target="_blank" rel="noopener">Photos &amp; details on Zillow ↗</a>` : ''}
+            ${l.realtor_url ? `<a class="btn btn-outline" href="${esc(l.realtor_url)}" target="_blank" rel="noopener">Realtor.com ↗</a>` : ''}
+          </div>
+          <div class="agent-box">
+            <div class="photo" role="img" aria-label="Devin Brady"></div>
+            <div class="stack" style="gap:8px">
+              <p class="eyebrow" style="color:var(--mist);font-size:11px">Schedule a showing</p>
+              <div class="h3" style="font-size:22px">Devin Brady</div>
+              <div class="btn-row" style="gap:18px;padding-top:4px"><a href="tel:+13167303642">Call 316-730-3642</a><a href="sms:+13167303642">Text</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      ${l.description ? `<div class="split rule-top" style="margin-top:80px;padding-top:48px"><h2 class="h3" style="font-size:32px">About this home</h2><p class="body" style="font-size:18px;max-width:680px;white-space:pre-line">${esc(l.description)}</p></div>` : ''}`;
+    const main = document.getElementById('main-photo') as HTMLImageElement | null;
+    root.querySelector('.thumbs')?.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('button');
+      if (!b || !main) return;
+      main.src = photos[Number(b.dataset.i)];
+      root.querySelectorAll('.thumbs button').forEach((x) => x.setAttribute('aria-current', String(x === b)));
+    });
+    const ld = document.createElement('script');
+    ld.type = 'application/ld+json';
+    ld.textContent = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'SingleFamilyResidence', name: title, image: photos,
+      address: { '@type': 'PostalAddress', streetAddress: l.street, addressLocality: l.city.replace(/,\s*NC$/i, ''), addressRegion: 'NC', addressCountry: 'US' },
+      numberOfRooms: l.beds || undefined, floorSize: l.sqft ? { '@type': 'QuantitativeValue', value: l.sqft, unitCode: 'FTK' } : undefined,
+    });
+    document.head.appendChild(ld);
+  }
+
+  (async () => {
+    if (!id) return notFound();
+    const { data, error } = await supabase.from('listings').select('*').eq('id', id).maybeSingle();
+    if (error || !data) notFound(); else render(data as Listing);
+    const more = await fetchListings({ exclude: id, limit: 3 }).catch(() => []);
+    if (more.length) document.getElementById('more')!.innerHTML = more.map(cardHTML).join('');
+    else document.getElementById('more-wrap')!.hidden = true;
+  })();
+</script>

@@ -1,0 +1,70 @@
+---
+import Base from '../layouts/Base.astro';
+import ListingGrid from '../components/ListingGrid.astro';
+import { AREAS, SITE } from '../data/site';
+const services = [
+  ['01', 'Buying', 'Private showings, local pricing knowledge and a clear plan from offer to keys.', 'Start your search', '/buy/'],
+  ['02', 'Selling', 'Your home is priced with care, professionally presented and negotiated with discipline.', 'Get a home value', '/sell/'],
+  ['03', 'Military moves', 'PCS to Seymour Johnson AFB with a veteran who knows VA loans and tight timelines.', 'Relocation guide', '/military/'],
+];
+---
+<Base title="The Brady Group | Goldsboro, NC Real Estate" description="Devin Brady, REALTOR® and U.S. Air Force veteran, helps buyers, sellers and military families in Goldsboro, Wayne County, Seymour Johnson AFB and the Triangle.">
+  <section class="hero" style="background-image:url(/assets/hero.png)">
+    <div class="wrap">
+      <div class="hero-panel">
+        <p class="eyebrow">Devin Brady, REALTOR® · Goldsboro, NC</p>
+        <h1>Eastern North Carolina homes, handled with care.</h1>
+        <div class="btn-row">
+          <a class="btn" href="/listings/">View listings</a>
+          <a class="btn btn-outline" href="/sell/#valuation">What's my home worth</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <div class="head-row">
+      <div class="stack" style="gap:18px"><p class="eyebrow">Featured</p><h2 class="h2">Current listings</h2></div>
+      <a class="link" href="/listings/">All listings →</a>
+    </div>
+    <ListingGrid featured limit={3} />
+  </section>
+
+  <section class="photo-split">
+    <div class="photo" style="background-image:url(/assets/devin-headshot.png)" role="img" aria-label="Devin Brady"></div>
+    <div class="text">
+      <h2 class="h2">Meet Devin Brady</h2>
+      <p class="body">Devin is a REALTOR® and U.S. Air Force veteran based in Goldsboro. He works with buyers, sellers and military families across Wayne County and the Triangle.</p>
+      <p class="body">Every home is priced with care, presented properly and negotiated with discipline. You'll always know where things stand.</p>
+      <div><a class="link" href="/about/">About The Brady Group →</a></div>
+    </div>
+  </section>
+
+  <section class="navy">
+    <div class="wrap section">
+      <h2 class="h2" style="margin-bottom:56px">How we help</h2>
+      <div class="steps">
+        {services.map(([n, t, d, cta, href]) => (
+          <div class="step"><div class="n">{n}</div><h3 style="font-size:30px">{t}</h3><p>{d}</p><div><a class="link" href={href}>{cta} →</a></div></div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section split">
+    <div class="stack" style="gap:18px"><p class="eyebrow">Where we work</p><h2 class="h2">Wayne County to the Triangle</h2></div>
+    <nav class="area-list" aria-label="Areas">
+      {AREAS.map((a) => <a href={`/areas/${a.slug}/`}>{a.name}<span aria-hidden="true">→</span></a>)}
+    </nav>
+  </section>
+
+  <section class="navy">
+    <div class="wrap section" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:40px 64px">
+      <p class="statement">Together, The Brady Group makes sure your home is positioned as one of the most compelling offerings on the market.</p>
+      <div class="stack" style="gap:16px;justify-items:start">
+        <a class="phone-big" href={SITE.phoneHref}>{SITE.phone}</a>
+        <a class="btn" href="/contact/">Book a consultation</a>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,35 @@
+---
+interface Props { featured?: boolean; cities?: string[]; limit?: number; exclude?: string }
+const { featured = false, cities = [], limit = 0, exclude = '' } = Astro.props;
+---
+<div class="listing-grid">
+  <div class="cards" data-listings data-featured={featured ? '1' : ''} data-cities={cities.join('|')} data-limit={String(limit)} data-exclude={exclude} aria-live="polite">
+    {Array.from({ length: limit || 3 }).map(() => (
+      <div class="card card-skel" aria-hidden="true"><div class="card-photo"></div><div class="card-body"><div class="skel w40"></div><div class="skel w80"></div><div class="skel w60"></div></div></div>
+    ))}
+  </div>
+  <div class="cards-empty" hidden>
+    <slot><p class="body">No listings right now. Call or text 316-730-3642 and Devin will help you find the right home.</p></slot>
+  </div>
+</div>
+<script>
+  import { fetchListings, cardHTML } from '../lib/listings';
+  document.querySelectorAll<HTMLElement>('[data-listings]').forEach(async (el) => {
+    const d = el.dataset;
+    const empty = el.nextElementSibling as HTMLElement;
+    try {
+      const rows = await fetchListings({
+        featured: d.featured === '1', cities: d.cities ? d.cities.split('|') : [],
+        limit: Number(d.limit) || 0, exclude: d.exclude || '',
+      });
+      el.innerHTML = rows.map(cardHTML).join('');
+      el.hidden = rows.length === 0;
+      empty.hidden = rows.length > 0;
+    } catch (e) {
+      console.error(e);
+      el.hidden = true;
+      empty.innerHTML = '<p class="body">Listings are temporarily unavailable. Call or text <a href="tel:+13167303642">316-730-3642</a>.</p>';
+      empty.hidden = false;
+    }
+  });
+</script>

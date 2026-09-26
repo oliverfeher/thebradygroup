@@ -1,0 +1,38 @@
+Options -Indexes
+DirectoryIndex index.html index.php
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# HTTPS + no www
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+# The admin lives at admin.bradygrouphomes.com
+RewriteRule ^admin/?(.*)$ https://admin.bradygrouphomes.com/$1 [L,R=302]
+
+# Old page names → new
+RewriteRule ^areas/goldsboro/?$ /areas/goldsboro-nc/ [L,R=301]
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+<FilesMatch "config\.php$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType text/html "access plus 0 seconds"
+ExpiresByType image/png "access plus 30 days"
+ExpiresByType image/jpeg "access plus 30 days"
+ExpiresByType text/css "access plus 1 year"
+ExpiresByType application/javascript "access plus 1 year"
+</IfModule>

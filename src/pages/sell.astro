@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import Steps from '../components/Steps.astro';
+import LeadForm from '../components/LeadForm.astro';
+import { SELL_STEPS } from '../data/site';
+---
+<Base title="Sell Your Home in Goldsboro & Eastern NC" active="Sell" description="Sell your Goldsboro or Wayne County home with Devin Brady. Free written market analysis within 48 hours, professional marketing and disciplined negotiation.">
+  <section class="wrap page-head">
+    <p class="eyebrow">Selling</p>
+    <h1 class="display" style="max-width:860px">Priced right, shown well</h1>
+    <p class="lede">Your home is priced with care, professionally presented and negotiated with discipline.</p>
+    <div class="btn-row"><a class="btn" href="#valuation">Get a home value</a></div>
+  </section>
+  <section class="rule-top"><div class="wrap section"><Steps steps={SELL_STEPS} /></div></section>
+  <section id="valuation" class="wrap" style="padding-bottom:112px;scroll-margin-top:24px">
+    <div class="panel split center">
+      <div class="stack" style="gap:14px">
+        <h2 class="h3" style="font-size:32px">What's my home worth?</h2>
+        <p class="body" style="font-size:16px">You'll get a written market analysis within 48 hours, based on recent local sales rather than an online estimate.</p>
+      </div>
+      <LeadForm kind="valuation" />
+    </div>
+  </section>
+</Base>

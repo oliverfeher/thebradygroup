@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { AREAS } from '../../data/site';
+---
+<Base title="Areas We Serve in Eastern NC" active="Areas" description="The Brady Group serves Goldsboro, Wayne County, Seymour Johnson AFB, Wilson, Smithfield and Raleigh, NC.">
+  <section class="hero short" style="background-image:url(/assets/hero.png);background-position:center 70%">
+    <div class="wrap"><div class="hero-panel"><p class="eyebrow">Where we work</p><h1>Wayne County to the Triangle</h1></div></div>
+  </section>
+  <section class="wrap" style="padding-top:40px;padding-bottom:96px">
+    {AREAS.map((a) => (
+      <div class="area-row">
+        <h2 class="h3" style="font-size:clamp(28px,3.2vw,36px)"><a href={`/areas/${a.slug}/`}>{a.name}</a></h2>
+        <p class="body" style="max-width:520px">{a.blurb}</p>
+        <div class="links"><a class="link" href={`/areas/${a.slug}/`}>Explore {a.name} →</a><a class="link muted" href="/contact/">Ask Devin about {a.name}</a></div>
+      </div>
+    ))}
+  </section>
+  <section class="navy">
+    <div class="wrap section" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:32px 64px">
+      <div class="stack" style="max-width:620px;gap:14px"><h2 class="h2" style="font-size:clamp(30px,3.6vw,40px)">Not sure where to land?</h2><p class="body">Tell Devin about your commute, schools and budget, and he'll narrow it down with you.</p></div>
+      <a class="btn" href="/contact/">Talk with Devin</a>
+    </div>
+  </section>
+</Base>

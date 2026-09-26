@@ -1,0 +1,87 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../data/site';
+---
+<Base title="Listings" active="Listings" description="Current and recent listings from The Brady Group in Goldsboro, Wayne County, Wilson, Smithfield and Raleigh, NC.">
+  <section class="wrap section" style="padding-bottom:96px">
+    <div class="head-row">
+      <div class="stack" style="max-width:640px">
+        <p class="eyebrow">Listings</p>
+        <h1 class="display">Homes by The Brady Group</h1>
+        <p class="lede">Devin's current and recent listings. Each one is also on Zillow and Realtor.com.</p>
+      </div>
+      {SITE.zillowProfile && <a class="link" href={SITE.zillowProfile} target="_blank" rel="noopener">Devin on Zillow ↗</a>}
+    </div>
+
+    <div class="filter-bar">
+      <div class="tabs" id="tabs" role="group" aria-label="Filter by status"></div>
+      <label class="select-label">Area <select id="area"><option value="">All areas</option></select></label>
+    </div>
+
+    <div class="cards" id="grid" aria-live="polite">
+      {Array.from({ length: 6 }).map(() => (
+        <div class="card card-skel" aria-hidden="true"><div class="card-photo"></div><div class="card-body"><div class="skel w40"></div><div class="skel w80"></div><div class="skel w60"></div></div></div>
+      ))}
+    </div>
+    <div class="cards-empty" id="empty" hidden>
+      <p class="body">Nothing matches right now.</p>
+      <button class="link" id="reset" type="button" style="background:none;border-width:0 0 1px;cursor:pointer">Show all listings</button>
+    </div>
+  </section>
+
+  <section class="navy">
+    <div class="wrap section" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:32px 64px">
+      <div class="stack" style="max-width:620px;gap:16px">
+        <h2 class="h2" style="font-size:clamp(30px,3.6vw,40px)">Looking for something else?</h2>
+        <p class="body">Devin can show you any home on the market, not only his own listings. Tell him what you're after and he'll send matches as they come up.</p>
+      </div>
+      <a class="btn" href="/contact/">Start a search with Devin</a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { fetchListings, cardHTML, isActive, type Listing } from '../lib/listings';
+  const grid = document.getElementById('grid')!, tabsEl = document.getElementById('tabs')!, empty = document.getElementById('empty')!;
+  const areaSel = document.getElementById('area') as HTMLSelectElement;
+  const MATCH: Record<string, (l: Listing) => boolean> = {
+    'All': () => true, 'Active': isActive,
+    'Under contract': (l) => l.status === 'Under contract', 'Sold': (l) => l.status === 'Sold',
+  };
+  const params = new URLSearchParams(location.search);
+  let all: Listing[] = [], tab = params.get('status') || 'All', area = params.get('area') || '';
+  const cityName = (c: string) => c.replace(/,\s*NC$/i, '').trim();
+
+  function render() {
+    const inArea = all.filter((l) => !area || cityName(l.city).toLowerCase() === area.toLowerCase());
+    tabsEl.innerHTML = Object.keys(MATCH).map((k) =>
+      `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${k}<span>${inArea.filter(MATCH[k]).length}</span></button>`).join('');
+    const shown = inArea.filter(MATCH[tab] || MATCH.All);
+    grid.innerHTML = shown.map(cardHTML).join('');
+    grid.hidden = !shown.length;
+    empty.hidden = !!shown.length;
+    const q = new URLSearchParams();
+    if (tab !== 'All') q.set('status', tab);
+    if (area) q.set('area', area);
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''));
+  }
+  tabsEl.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button');
+    if (b) { tab = b.dataset.tab!; render(); }
+  });
+  areaSel.addEventListener('change', () => { area = areaSel.value; render(); });
+  document.getElementById('reset')!.addEventListener('click', () => { tab = 'All'; area = ''; areaSel.value = ''; render(); });
+
+  fetchListings().then((rows) => {
+    all = rows;
+    const cities = [...new Set(rows.map((l) => cityName(l.city)).filter(Boolean))].sort();
+    areaSel.insertAdjacentHTML('beforeend', cities.map((c) => `<option value="${c}">${c}</option>`).join(''));
+    if (area && !cities.some((c) => c.toLowerCase() === area.toLowerCase())) areaSel.insertAdjacentHTML('beforeend', `<option value="${area}">${area}</option>`);
+    areaSel.value = cities.find((c) => c.toLowerCase() === area.toLowerCase()) || area;
+    render();
+  }).catch(() => {
+    grid.hidden = true;
+    empty.innerHTML = '<p class="body">Listings are temporarily unavailable. Call or text <a href="tel:+13167303642">316-730-3642</a>.</p>';
+    empty.hidden = false;
+  });
+</script>

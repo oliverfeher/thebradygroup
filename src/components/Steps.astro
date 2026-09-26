@@ -1,0 +1,13 @@
+---
+interface Props { steps: string[][]; numbered?: boolean }
+const { steps, numbered = true } = Astro.props;
+---
+<div class="steps">
+  {steps.map(([t, d], i) => (
+    <div class="step">
+      {numbered && <div class="n">{String(i + 1).padStart(2, '0')}</div>}
+      <h3>{t}</h3>
+      <p>{d}</p>
+    </div>
+  ))}
+</div>

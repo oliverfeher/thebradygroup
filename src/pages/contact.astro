@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import LeadForm from '../components/LeadForm.astro';
+import { SITE, AREAS } from '../data/site';
+---
+<Base title="Contact Devin Brady" active="Contact" description="Call or text Devin Brady at 316-730-3642, or send a note. Serving Goldsboro, Wayne County, Seymour Johnson AFB, Wilson, Smithfield and Raleigh.">
+  <section class="wrap section split" style="padding-bottom:112px">
+    <div class="stack" style="gap:28px">
+      <p class="eyebrow">Contact</p>
+      <h1 class="display">Let's talk about your move</h1>
+      <p class="lede" style="max-width:460px">Call or text any time, or send a note and Devin will get back to you.</p>
+      <div class="contact-list">
+        <div><span class="label">Call or text</span><a href={SITE.phoneHref} class="phone-big" style="color:var(--navy);font-size:30px">{SITE.phone}</a></div>
+        <div><span class="label">Email</span><a href={`mailto:${SITE.email}`} style="font:600 18px/1.3 var(--sans);color:var(--ink)">{SITE.email}</a></div>
+        <div><span class="label">Serving</span><span class="body" style="font-size:16px">{AREAS.map((a) => a.name).join(' · ')}</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="h3" style="font-size:26px;margin-bottom:22px">Send a note</h2>
+      <LeadForm kind="contact" />
+    </div>
+  </section>
+</Base>

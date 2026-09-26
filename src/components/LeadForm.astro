@@ -1,0 +1,73 @@
+---
+interface Props { kind: 'contact' | 'valuation' | 'alerts'; area?: string; button?: string }
+const { kind, area = '', button } = Astro.props;
+const label = button ?? { contact: 'Send to Devin', valuation: 'Get my valuation', alerts: 'Send me listings' }[kind];
+---
+<div class="lead">
+  <form class="lead-form" data-lead data-kind={kind} data-area={area} novalidate>
+    {kind === 'contact' && (
+      <fieldset class="chips">
+        <legend class="label">I'm interested in</legend>
+        {['Buying', 'Selling', 'Military move', 'Something else'].map((c, i) => (
+          <label class="chip"><input type="radio" name="interest" value={c} checked={i === 0} /><span>{c}</span></label>
+        ))}
+      </fieldset>
+    )}
+    {kind === 'valuation' && (
+      <label class="field"><span class="label">Home address *</span><input name="address" required autocomplete="street-address" /></label>
+    )}
+    <label class="field"><span class="label">Name *</span><input name="name" required autocomplete="name" /></label>
+    <div class="field-row">
+      <label class="field"><span class="label">Phone</span><input name="phone" type="tel" autocomplete="tel" /></label>
+      <label class="field"><span class="label">Email</span><input name="email" type="email" autocomplete="email" /></label>
+    </div>
+    {kind === 'contact' && (
+      <label class="field"><span class="label">Message</span><textarea name="message" rows="5" placeholder="Timing, area, price range, anything useful."></textarea></label>
+    )}
+    {kind === 'alerts' && (
+      <label class="field"><span class="label">What you're looking for</span><input name="message" placeholder="Beds, budget, must-haves" /></label>
+    )}
+    <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" />
+    <p class="form-err" role="alert" hidden></p>
+    <div><button class="btn" type="submit">{label}</button></div>
+  </form>
+  <div class="form-done" hidden role="status">
+    <p class="eyebrow">Sent</p>
+    <p class="h3">Thanks. Devin will be in touch soon.</p>
+    <p class="body">For anything time-sensitive, call or text <a href="tel:+13167303642">316-730-3642</a>.</p>
+  </div>
+</div>
+<script>
+  document.querySelectorAll<HTMLFormElement>('form[data-lead]').forEach((form) => {
+    const err = form.querySelector<HTMLElement>('.form-err')!;
+    const btn = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
+      if (!data.name?.trim()) return fail('Please add your name.');
+      if (form.dataset.kind === 'valuation' && !data.address?.trim()) return fail('Please add the home address.');
+      if (!data.phone?.trim() && !data.email?.trim()) return fail('Add a phone number or email so Devin can reach you.');
+      if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return fail('That email address doesn’t look right.');
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.textContent = 'Sending…';
+      try {
+        const res = await fetch('/api/lead.php', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, kind: form.dataset.kind, area: form.dataset.area, page: location.pathname }),
+        });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || !out.ok) throw new Error(out.error || 'send failed');
+        form.hidden = true;
+        (form.nextElementSibling as HTMLElement).hidden = false;
+      } catch (x) {
+        fail('Something went wrong sending your message. Please call or text 316-730-3642.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old;
+      }
+    });
+  });
+</script>

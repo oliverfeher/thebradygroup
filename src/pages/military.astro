@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import Steps from '../components/Steps.astro';
+import { MIL_POINTS, SITE } from '../data/site';
+---
+<Base title="PCS to Seymour Johnson AFB | Military Moves" active="Military" description="Moving to Seymour Johnson AFB? Devin Brady, a REALTOR® and U.S. Air Force veteran, helps military families with VA loans, remote buying and PCS timelines.">
+  <section class="navy">
+    <div class="wrap section stack" style="gap:56px">
+      <div class="split" style="align-items:end">
+        <div class="stack" style="gap:18px">
+          <p class="eyebrow">Military moves</p>
+          <h1 class="display">PCS to Seymour Johnson AFB</h1>
+        </div>
+        <p class="body" style="font-size:18px">Devin served in the Air Force and knows how orders shape a move. He plans the search around your report date, not the other way around.</p>
+      </div>
+      <Steps steps={MIL_POINTS} numbered={false} />
+      <div class="btn-row"><a class="btn" href="/contact/">Plan my PCS move</a><a class="btn btn-outline" href={SITE.phoneHref}>{SITE.phone}</a></div>
+    </div>
+  </section>
+  <section class="wrap section split center">
+    <div class="stack" style="gap:18px"><p class="eyebrow">Near the base</p><h2 class="h2">Where airmen and families live</h2></div>
+    <div class="stack" style="justify-items:start"><p class="body">Neighborhoods, commute times and VA loan details for the areas around Seymour Johnson AFB.</p><a class="link" href="/areas/seymour-johnson-afb/">Homes near Seymour Johnson AFB →</a></div>
+  </section>
+</Base>

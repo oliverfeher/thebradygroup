@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+import Steps from '../components/Steps.astro';
+import { BUY_STEPS } from '../data/site';
+---
+<Base title="Buying a Home in Goldsboro & Eastern NC" active="Buy" description="Buy a home in Goldsboro, Wayne County or the Triangle with Devin Brady: private showings, local pricing knowledge and a clear plan from offer to keys.">
+  <section class="wrap page-head">
+    <p class="eyebrow">Buying</p>
+    <h1 class="display" style="max-width:860px">From first showing to keys</h1>
+    <p class="lede">Private showings, local pricing knowledge and a clear plan, whether it's your first home or your fifth.</p>
+    <div class="btn-row"><a class="btn" href="/listings/">Browse listings</a><a class="btn btn-outline" href="/contact/">Start a search with Devin</a></div>
+  </section>
+  <section class="rule-top"><div class="wrap section"><Steps steps={BUY_STEPS} /></div></section>
+  <section class="navy">
+    <div class="wrap section split center">
+      <div class="stack" style="gap:18px"><p class="eyebrow">On orders?</p><h2 class="h2">Buying near Seymour Johnson AFB</h2></div>
+      <div class="stack" style="justify-items:start"><p class="body" style="font-size:18px">VA loans, remote buying and report-date timelines, from a fellow Air Force veteran.</p><a class="btn" href="/military/">Military moves</a></div>
+    </div>
+  </section>
+</Base>

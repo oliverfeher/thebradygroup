@@ -1,0 +1,359 @@
+---
+// Self-contained admin page (inline CSS + JS, supabase-js from CDN) so it can be
+// uploaded on its own to the admin.bradygrouphomes.com subdomain folder.
+const cfg = { url: import.meta.env.PUBLIC_SUPABASE_URL, key: import.meta.env.PUBLIC_SUPABASE_ANON_KEY };
+const ASSET = 'https://bradygrouphomes.com/assets';
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin · The Brady Group</title>
+<link rel="icon" href={`${ASSET}/bg-primary.png`}>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+<style is:inline>
+:root{--navy:#102756;--navy-2:#1b3a78;--brown:#49423E;--taupe:#6B6460;--gray:#9A9591;--ivory:#F3F1EE;--paper:#fbfaf8;--stone:#E4E0DA;--ink:#040303;--mist:#C9C4BD;--serif:Tinos,Georgia,serif;--sans:Mulish,system-ui,sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--ivory);color:var(--ink);font:400 15px/1.5 var(--sans)}
+a{color:var(--navy);text-decoration:none}a:hover{text-decoration:underline}
+input,select,textarea,button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.lbl{font:700 11px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.btn{border:1px solid var(--navy);background:var(--navy);color:var(--ivory);padding:14px 22px;font:700 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;white-space:nowrap;border-radius:0}
+.btn:hover{background:var(--navy-2)}.btn:disabled{background:var(--gray);border-color:var(--gray);cursor:default}
+.btn.ghost{background:none;color:var(--brown);border-color:var(--brown)}
+.tlink{border:0;background:none;padding:0 0 3px;border-bottom:1px solid var(--navy);color:var(--navy);font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.tlink.muted{color:var(--taupe);border-color:var(--gray)}
+.in{width:100%;border:1px solid var(--gray);background:var(--paper);padding:13px 14px;font:400 15px/1.4 var(--sans);outline:none;border-radius:0}
+.in:focus{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.fld{display:grid;gap:8px}
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-card{width:min(420px,100%);background:var(--paper);border:1px solid #d9d5cf;padding:40px;display:grid;gap:20px}
+.login-card img{height:56px;width:auto;justify-self:start}
+.err{margin:0;padding:12px 14px;background:var(--stone);color:var(--navy);font:600 14px/1.4 var(--sans)}
+/* top bar */
+.bar{background:var(--navy);color:var(--ivory);display:flex;align-items:center;justify-content:space-between;gap:16px 24px;padding:16px clamp(16px,4vw,40px);flex-wrap:wrap}
+.bar-l{display:flex;align-items:center;gap:20px}
+.bar img{height:40px;width:auto}
+.bar .div{width:1px;height:28px;background:var(--taupe)}
+.bar .t{font:700 12px/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
+.bar-r{display:flex;align-items:center;gap:20px;font:700 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.bar-r a,.bar-r button{color:var(--ivory);background:none;border:0;cursor:pointer;font:inherit;letter-spacing:inherit;text-transform:inherit;padding:0;white-space:nowrap}
+.bar-r .who{color:var(--mist);text-transform:none;letter-spacing:.02em;font-weight:600}
+/* main */
+.main{max-width:1200px;margin:0 auto;padding:48px clamp(16px,4vw,40px) 96px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:32px}
+.head h1{margin:0;font:400 44px/1.05 var(--serif);text-transform:uppercase;letter-spacing:.04em}
+.tabs{display:flex;gap:28px;flex-wrap:wrap;border-bottom:1px solid var(--gray)}
+.tabs button{border:0;background:none;padding:0 0 14px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--taupe);font:700 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.tabs button[aria-pressed=true]{color:var(--navy);border-color:var(--navy)}
+.tabs span{color:var(--gray);margin-left:4px}
+.hint{font-size:13px;color:var(--taupe);padding:10px 0 18px}
+.rows{border-top:1px solid var(--gray)}
+.row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:24px;align-items:center;padding:20px 0;border-bottom:1px solid var(--gray)}
+.thumb{aspect-ratio:4/3;background:var(--stone) center/cover no-repeat;display:grid;place-items:center;font:400 10px/1 ui-monospace,monospace;color:var(--gray)}
+.row-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px}
+.row-info{display:grid;gap:6px;flex:1 1 280px}
+.price{font:700 22px/1 var(--serif);letter-spacing:.1em;color:var(--navy)}
+.addr{font:600 15px/1.35 var(--sans)}
+.specs{font-size:13px;color:var(--brown)}
+.row-ctl{display:flex;align-items:center;gap:20px;flex-wrap:wrap;flex-shrink:0}
+.sel{position:relative}
+.sel select{appearance:none;border:0;background:var(--navy);color:var(--ivory);padding:10px 30px 10px 12px;font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-radius:0}
+.sel select[data-s="For sale"]{background:var(--taupe)}.sel select[data-s="Under contract"]{background:var(--brown)}
+.sel::after{content:'▼';position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--ivory);font-size:9px}
+.tog{border:0;background:none;padding:0;display:flex;align-items:center;gap:10px;cursor:pointer;font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--brown);white-space:nowrap}
+.tog i{width:38px;height:20px;background:#C9C4BD;position:relative;display:block;transition:background .15s}
+.tog i::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;background:var(--ivory);transition:left .15s}
+.tog[aria-checked=true] i{background:var(--navy)}.tog[aria-checked=true] i::after{left:21px}
+.empty{padding:64px 0;text-align:center;color:var(--taupe)}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(73,66,62,.55);z-index:10}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(580px,100%);background:var(--ivory);z-index:11;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(16,39,86,.18)}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:22px 28px;border-bottom:1px solid var(--gray)}
+.dh h2{margin:0;font:400 24px/1 var(--serif);text-transform:uppercase;letter-spacing:.06em}
+.dh button{border:0;background:none;font:400 28px/1 var(--sans);color:var(--brown);cursor:pointer}
+.db{flex:1;overflow:auto;padding:24px 28px;display:grid;gap:20px;align-content:start}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.span2{grid-column:1/-1}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.ph{position:relative;aspect-ratio:4/3;background:var(--stone) center/cover}
+.ph .cover{position:absolute;left:6px;top:6px;background:var(--navy);color:var(--ivory);padding:5px 7px;font:700 9px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.ph .acts{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(243,241,238,.92);padding:6px 8px}
+.ph .acts button{border:0;background:none;padding:0;font:700 10px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--navy);cursor:pointer}
+.add-ph{aspect-ratio:4/3;border:1px dashed var(--gray);display:grid;place-items:center;cursor:pointer;font:700 11px/1.3 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--navy);text-align:center;padding:8px}
+.add-ph:hover{border-color:var(--navy)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{border:1px solid var(--gray);background:none;color:var(--brown);padding:10px 14px;font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.chips button[aria-pressed=true]{background:var(--navy);border-color:var(--navy);color:var(--ivory)}
+.chips button[aria-pressed=true][data-s="For sale"]{background:var(--taupe);border-color:var(--taupe)}
+.chips button[aria-pressed=true][data-s="Under contract"]{background:var(--brown);border-color:var(--brown)}
+.df{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 28px;border-top:1px solid var(--gray);flex-wrap:wrap}
+.df .r{display:flex;gap:10px}
+.toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--navy);color:var(--ivory);padding:14px 22px;font:700 12px/1.3 var(--sans);letter-spacing:.14em;text-transform:uppercase;z-index:20;box-shadow:0 8px 24px rgba(16,39,86,.25);max-width:calc(100% - 32px);text-align:center}
+@media (max-width:560px){.row{grid-template-columns:84px minmax(0,1fr);gap:14px}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:1fr}.head h1{font-size:34px}}
+</style>
+<script is:inline set:html={`window.TBG_CFG=${JSON.stringify(cfg)}`}></script>
+</head>
+<body>
+
+<div id="loading" class="login"><div class="lbl">Loading…</div></div>
+
+<div id="login" class="login" hidden>
+  <form id="login-form" class="login-card">
+    <img src={`${ASSET}/bg-primary.png`} alt="The Brady Group">
+    <div style="font:400 28px/1 var(--serif);text-transform:uppercase;letter-spacing:.05em">Site admin</div>
+    <label class="fld"><span class="lbl">Email</span><input class="in" name="email" type="email" required autocomplete="username"></label>
+    <label class="fld"><span class="lbl">Password</span><input class="in" name="password" type="password" required autocomplete="current-password"></label>
+    <p id="login-err" class="err" role="alert" hidden></p>
+    <button class="btn" type="submit">Sign in</button>
+    <button id="forgot" class="tlink muted" type="button" style="justify-self:start">Forgot password</button>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="bar">
+    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Site admin</span></div>
+    <div class="bar-r"><span class="who" id="who"></span><a href="https://bradygrouphomes.com/listings/" target="_blank" rel="noopener">View site ↗</a><button id="signout" type="button">Sign out</button></div>
+  </header>
+  <main class="main">
+    <div class="head">
+      <div><div class="lbl" style="margin-bottom:14px">Manage</div><h1>Listings</h1></div>
+      <button class="btn" id="add" type="button">+ Add listing</button>
+    </div>
+    <div class="tabs" id="tabs" role="group" aria-label="Filter"></div>
+    <div class="hint">Featured listings (up to 3) appear on the homepage. Changes go live as soon as you save.</div>
+    <div class="rows" id="rows"></div>
+    <div class="empty" id="empty" hidden>No listings here yet.</div>
+  </main>
+</div>
+
+<div id="drawer" hidden>
+  <div class="scrim" data-close></div>
+  <form class="drawer" id="edit" novalidate>
+    <div class="dh"><h2 id="d-title">New listing</h2><button type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="fld"><span class="lbl">Photos · first is the cover</span>
+        <div class="photos" id="photos"></div>
+        <input type="file" id="file" accept="image/*" multiple hidden>
+      </div>
+      <div class="g2">
+        <label class="fld span2"><span class="lbl">Street address *</span><input class="in" name="street" placeholder="114 Magnolia Ridge Dr"></label>
+        <label class="fld"><span class="lbl">City</span><input class="in" name="city" placeholder="Goldsboro, NC"></label>
+        <label class="fld"><span class="lbl">Price *</span><input class="in" name="price" inputmode="numeric" placeholder="389900"></label>
+      </div>
+      <div class="g3">
+        <label class="fld"><span class="lbl">Beds</span><input class="in" name="beds" inputmode="decimal"></label>
+        <label class="fld"><span class="lbl">Baths</span><input class="in" name="baths" inputmode="decimal"></label>
+        <label class="fld"><span class="lbl">Sq ft</span><input class="in" name="sqft" inputmode="numeric"></label>
+      </div>
+      <div class="fld"><span class="lbl">Status</span><div class="chips" id="chips"></div></div>
+      <label class="fld"><span class="lbl">Zillow link</span><input class="in" name="zillow_url" type="url" placeholder="https://www.zillow.com/homedetails/…"></label>
+      <label class="fld"><span class="lbl">Realtor.com link</span><input class="in" name="realtor_url" type="url" placeholder="https://www.realtor.com/realestateandhomes-detail/…"></label>
+      <label class="fld"><span class="lbl">Description</span><textarea class="in" name="description" rows="5" placeholder="A few sentences for the listing page." style="resize:vertical;line-height:1.55"></textarea></label>
+      <button type="button" class="tog" id="d-feat" role="switch" aria-checked="false"><i></i>Feature on homepage</button>
+      <p id="d-err" class="err" role="alert" hidden></p>
+    </div>
+    <div class="df">
+      <button type="button" class="tlink muted" id="d-del" hidden>Delete listing</button><span></span>
+      <div class="r"><button type="button" class="btn ghost" data-close>Cancel</button><button type="submit" class="btn" id="d-save">Save &amp; publish</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module" is:inline>
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const sb = createClient(window.TBG_CFG.url, window.TBG_CFG.key);
+const BUCKET = 'listing-photos';
+const STATUSES = ['Just listed', 'For sale', 'Under contract', 'Sold'];
+const FILTERS = { All: () => true, Active: (l) => l.status === 'Just listed' || l.status === 'For sale', 'Under contract': (l) => l.status === 'Under contract', Sold: (l) => l.status === 'Sold' };
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = (v) => (v ? '$' + Number(v).toLocaleString('en-US') : '$—');
+const specs = (l) => [l.beds && l.beds + ' bd', l.baths && l.baths + ' ba', l.sqft && Number(l.sqft).toLocaleString('en-US') + ' sq ft'].filter(Boolean).join(' · ') || 'Add beds, baths and square footage';
+const num = (v) => { const n = Number(String(v ?? '').replace(/[^0-9.]/g, '')); return n || null; };
+
+let listings = [], filter = 'All', draft = null, editId = null, confirmDel = false, uploading = 0;
+
+function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2800); }
+function fail(e, fallback = 'Something went wrong') { console.error(e); toast(e?.message ? `${fallback}: ${e.message}` : fallback); }
+
+/* ---------- auth ---------- */
+function show(session) {
+  $('#loading').hidden = true;
+  $('#login').hidden = !!session;
+  $('#app').hidden = !session;
+  if (session) { $('#who').textContent = session.user.email; load(); }
+}
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') setTimeout(async () => {
+    const pw = prompt('Choose a new password (at least 8 characters):');
+    if (pw && pw.length >= 8) { const { error } = await sb.auth.updateUser({ password: pw }); toast(error ? error.message : 'Password updated'); }
+  }, 0);
+  if (['INITIAL_SESSION', 'SIGNED_IN', 'SIGNED_OUT'].includes(event)) setTimeout(() => show(session), 0);
+});
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target), err = $('#login-err'), btn = e.target.querySelector('.btn');
+  err.hidden = true; btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: f.get('email'), password: f.get('password') });
+  btn.disabled = false;
+  if (error) { err.textContent = 'That email and password didn’t match.'; err.hidden = false; }
+});
+$('#forgot').addEventListener('click', async () => {
+  const email = $('#login-form [name=email]').value.trim();
+  if (!email) { $('#login-err').textContent = 'Enter your email first.'; $('#login-err').hidden = false; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  toast(error ? error.message : 'Check your email for a reset link');
+});
+$('#signout').addEventListener('click', () => sb.auth.signOut());
+
+/* ---------- list ---------- */
+async function load() {
+  const { data, error } = await sb.from('listings').select('*').order('created_at', { ascending: false });
+  if (error) return fail(error, 'Couldn’t load listings');
+  listings = data; render();
+}
+function render() {
+  $('#tabs').innerHTML = Object.keys(FILTERS).map((k) => `<button type="button" data-f="${k}" aria-pressed="${k === filter}">${k}<span>${listings.filter(FILTERS[k]).length}</span></button>`).join('');
+  const shown = listings.filter(FILTERS[filter]);
+  $('#empty').hidden = shown.length > 0;
+  $('#rows').innerHTML = shown.map((l) => `
+    <div class="row" data-id="${l.id}">
+      <div class="thumb" style="${l.photos?.[0] ? `background-image:url('${esc(l.photos[0])}')` : ''}">${l.photos?.[0] ? '' : 'no photo'}</div>
+      <div class="row-in">
+        <div class="row-info"><div class="price">${money(l.price)}</div><div class="addr">${esc(l.street)}, ${esc(l.city)}</div><div class="specs">${esc(specs(l))}</div></div>
+        <div class="row-ctl">
+          <div class="sel"><select data-act="status" data-s="${esc(l.status)}" aria-label="Status">${STATUSES.map((s) => `<option${s === l.status ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
+          <button type="button" class="tog" data-act="feat" role="switch" aria-checked="${!!l.featured}"><i></i>Featured</button>
+          <button type="button" class="tlink" data-act="edit">Edit</button>
+          <a class="tlink muted" href="https://bradygrouphomes.com/listing/?id=${l.id}" target="_blank" rel="noopener">View ↗</a>
+        </div>
+      </div>
+    </div>`).join('');
+}
+async function patch(id, values, msg) {
+  const { data, error } = await sb.from('listings').update(values).eq('id', id).select().single();
+  if (error) return fail(error, 'Couldn’t save');
+  listings = listings.map((l) => (l.id === id ? data : l)); render(); if (msg) toast(msg);
+}
+const featuredCount = (except) => listings.filter((l) => l.featured && l.id !== except).length;
+
+$('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { filter = b.dataset.f; render(); } });
+$('#rows').addEventListener('change', (e) => {
+  if (e.target.dataset.act !== 'status') return;
+  patch(e.target.closest('.row').dataset.id, { status: e.target.value }, 'Status updated');
+});
+$('#rows').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.closest('.row').dataset.id, l = listings.find((x) => x.id === id);
+  if (b.dataset.act === 'feat') {
+    if (!l.featured && featuredCount(id) >= 3) return toast('Homepage shows 3. Unfeature one first.');
+    patch(id, { featured: !l.featured }, l.featured ? 'Removed from homepage' : 'Featured on homepage');
+  }
+  if (b.dataset.act === 'edit') open(l);
+});
+$('#add').addEventListener('click', () => open(null));
+
+/* ---------- drawer ---------- */
+const form = $('#edit');
+const FIELDS = ['street', 'city', 'price', 'beds', 'baths', 'sqft', 'zillow_url', 'realtor_url', 'description'];
+function open(l) {
+  editId = l?.id || null; confirmDel = false;
+  draft = l ? { ...l, photos: [...(l.photos || [])] } : { status: 'Just listed', city: 'Goldsboro, NC', photos: [], featured: false };
+  FIELDS.forEach((k) => (form.elements[k].value = draft[k] ?? ''));
+  $('#d-title').textContent = l ? 'Edit listing' : 'New listing';
+  $('#d-del').hidden = !l; $('#d-del').textContent = 'Delete listing';
+  $('#d-err').hidden = true;
+  drawDraft();
+  $('#drawer').hidden = false;
+  setTimeout(() => form.elements.street.focus(), 50);
+}
+function close() { $('#drawer').hidden = true; draft = null; }
+function drawDraft() {
+  $('#chips').innerHTML = STATUSES.map((s) => `<button type="button" data-s="${s}" aria-pressed="${s === draft.status}">${s}</button>`).join('');
+  $('#d-feat').setAttribute('aria-checked', String(!!draft.featured));
+  $('#photos').innerHTML = draft.photos.map((p, i) => `
+    <div class="ph" style="background-image:url('${esc(p)}')">${i === 0 ? '<span class="cover">Cover</span>' : ''}
+      <div class="acts">${i ? `<button type="button" data-ph="cover" data-i="${i}">Make cover</button>` : '<span></span>'}<button type="button" data-ph="remove" data-i="${i}">Remove</button></div>
+    </div>`).join('') + `<label class="add-ph" for="file">${uploading ? `Uploading ${uploading}…` : '+ Add photos'}</label>`;
+  $('#d-save').disabled = uploading > 0;
+}
+document.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && draft) close(); });
+$('#chips').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { draft.status = b.dataset.s; drawDraft(); } });
+$('#d-feat').addEventListener('click', () => {
+  if (!draft.featured && featuredCount(editId) >= 3) return toast('Homepage shows 3. Unfeature one first.');
+  draft.featured = !draft.featured; drawDraft();
+});
+$('#photos').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ph]'); if (!b) return;
+  const i = Number(b.dataset.i);
+  if (b.dataset.ph === 'remove') draft.photos.splice(i, 1);
+  else draft.photos.unshift(draft.photos.splice(i, 1)[0]);
+  drawDraft();
+});
+
+async function resize(file) {
+  const img = await createImageBitmap(file);
+  const s = Math.min(1, 1800 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return new Promise((r) => c.toBlob(r, 'image/jpeg', 0.82));
+}
+$('#file').addEventListener('change', async (e) => {
+  const files = [...e.target.files]; e.target.value = '';
+  uploading += files.length; drawDraft();
+  for (const f of files) {
+    try {
+      const blob = await resize(f);
+      const path = `${new Date().getFullYear()}/${crypto.randomUUID()}.jpg`;
+      const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+      if (error) throw error;
+      if (draft) draft.photos.push(sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
+    } catch (x) { fail(x, 'Photo upload failed'); }
+    uploading--; if (draft) drawDraft();
+  }
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const v = Object.fromEntries(FIELDS.map((k) => [k, form.elements[k].value.trim()]));
+  const err = $('#d-err');
+  const bad = !v.street ? 'Add the street address.' : !num(v.price) ? 'Add a price.' : '';
+  if (bad) { err.textContent = bad; err.hidden = false; return; }
+  const row = {
+    status: draft.status, featured: !!draft.featured, photos: draft.photos,
+    street: v.street, city: v.city || 'Goldsboro, NC', price: Math.round(num(v.price)),
+    beds: num(v.beds), baths: num(v.baths), sqft: num(v.sqft) && Math.round(num(v.sqft)),
+    zillow_url: v.zillow_url || null, realtor_url: v.realtor_url || null, description: v.description || null,
+  };
+  const btn = $('#d-save'); btn.disabled = true;
+  const q = editId ? sb.from('listings').update(row).eq('id', editId) : sb.from('listings').insert(row);
+  const { error } = await q;
+  btn.disabled = false;
+  if (error) return fail(error, 'Couldn’t save');
+  toast(editId ? 'Changes published' : 'Listing published');
+  close(); load();
+});
+
+$('#d-del').addEventListener('click', async () => {
+  if (!confirmDel) { confirmDel = true; $('#d-del').textContent = 'Click again to delete'; return; }
+  const l = listings.find((x) => x.id === editId);
+  const { error } = await sb.from('listings').delete().eq('id', editId);
+  if (error) return fail(error, 'Couldn’t delete');
+  const paths = (l?.photos || []).map((u) => u.split(`/${BUCKET}/`)[1]).filter(Boolean);
+  if (paths.length) sb.storage.from(BUCKET).remove(paths);
+  toast('Listing deleted'); close(); load();
+});
+</script>
+</body>
+</html>
