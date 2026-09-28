@@ -50,3 +50,20 @@ drop policy if exists "Staff update photos" on storage.objects;
 create policy "Staff update photos" on storage.objects for update to authenticated using (bucket_id = 'listing-photos');
 drop policy if exists "Staff delete photos" on storage.objects;
 create policy "Staff delete photos" on storage.objects for delete to authenticated using (bucket_id = 'listing-photos');
+
+-- TikTok videos shown on the homepage (managed in admin → TikTok)
+create table if not exists public.videos (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  url         text not null,
+  caption     text,
+  views       text,
+  thumb       text,
+  visible     boolean not null default true,
+  sort        integer not null default 0
+);
+alter table public.videos enable row level security;
+drop policy if exists "Public read videos" on public.videos;
+create policy "Public read videos" on public.videos for select using (visible or auth.role() = 'authenticated');
+drop policy if exists "Staff write videos" on public.videos;
+create policy "Staff write videos" on public.videos for all to authenticated using (true) with check (true);

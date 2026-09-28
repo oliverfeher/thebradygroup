@@ -30,7 +30,7 @@ $hits[] = time();
 $line = fn($k, $max = 200) => trim(preg_replace('/[\r\n\t]+/', ' ', mb_substr(strip_tags((string) ($in[$k] ?? '')), 0, $max)));
 $text = fn($k, $max = 3000) => trim(mb_substr(strip_tags((string) ($in[$k] ?? '')), 0, $max));
 
-$kinds = ['contact' => 'Contact form', 'valuation' => 'Home valuation request', 'alerts' => 'Listing alerts signup'];
+$kinds = ['contact' => 'Contact form', 'valuation' => 'Home valuation request', 'alerts' => 'Listing alerts signup', 'guide' => 'Guide download (Relocation + VA)'];
 $kind = $kinds[$in['kind'] ?? ''] ?? 'Website form';
 $name = $line('name', 120);
 $phone = $line('phone', 40);

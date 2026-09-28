@@ -22,6 +22,7 @@ const year = new Date().getFullYear();
         <a href={SITE.phoneHref} class="price" style="font-size:20px">{SITE.phone}</a>
         <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
         <span style="color:var(--brown)">Goldsboro, NC</span>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:6px">{SITE.socials.filter(([, u]) => u).map(([l, u]) => <a href={u} target="_blank" rel="noopener" class="eyebrow" style="color:var(--navy)">{l}</a>)}</div>
       </div>
     </div>
     <div class="cobrand">

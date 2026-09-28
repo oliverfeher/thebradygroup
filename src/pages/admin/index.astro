@@ -95,6 +95,20 @@ input,select,textarea,button{font:inherit;color:inherit}
 .chips button[aria-pressed=true][data-s="Under contract"]{background:var(--brown);border-color:var(--brown)}
 .df{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 28px;border-top:1px solid var(--gray);flex-wrap:wrap}
 .df .r{display:flex;gap:10px}
+.views{display:flex;gap:28px;margin-left:12px}
+.views button{border:0;background:none;padding:6px 0;border-bottom:2px solid transparent;color:var(--mist);font:700 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.views button[aria-pressed=true]{color:var(--ivory);border-color:var(--ivory)}
+.vadd{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}.vadd .in{flex:1 1 360px}
+.vrow{display:grid;grid-template-columns:28px 64px minmax(0,1fr);gap:18px;align-items:center;padding:16px 0;border-bottom:1px solid var(--gray)}
+.vrow[data-hidden]{opacity:.5}
+.vord{display:grid;gap:4px;justify-items:center;font:700 11px/1 var(--sans);color:var(--gray)}
+.vord button{border:0;background:none;padding:2px;color:var(--navy);cursor:pointer;font-size:12px}.vord button:disabled{color:var(--line);cursor:default}
+.vthumb{aspect-ratio:9/16;background:var(--stone) center/cover}
+.vin{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
+.vin .cap{flex:1 1 260px;border:1px solid transparent;background:transparent;padding:8px 10px;margin-left:-10px;font:600 15px/1.3 var(--sans);outline:none}
+.vin .cap:focus{border-color:var(--navy);background:var(--paper)}
+.vin .vw{width:84px;padding:8px 10px;font-size:14px}
+.vin label{display:flex;align-items:center;gap:8px}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--navy);color:var(--ivory);padding:14px 22px;font:700 12px/1.3 var(--sans);letter-spacing:.14em;text-transform:uppercase;z-index:20;box-shadow:0 8px 24px rgba(16,39,86,.25);max-width:calc(100% - 32px);text-align:center}
 @media (max-width:560px){.row{grid-template-columns:84px minmax(0,1fr);gap:14px}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:1fr}.head h1{font-size:34px}}
 </style>
@@ -118,10 +132,10 @@ input,select,textarea,button{font:inherit;color:inherit}
 
 <div id="app" hidden>
   <header class="bar">
-    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Site admin</span></div>
+    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Site admin</span><nav class="views" id="views"><button type="button" data-v="listings" aria-pressed="true">Listings</button><button type="button" data-v="videos" aria-pressed="false">TikTok</button></nav></div>
     <div class="bar-r"><span class="who" id="who"></span><a href="https://bradygrouphomes.com/listings/" target="_blank" rel="noopener">View site ↗</a><button id="signout" type="button">Sign out</button></div>
   </header>
-  <main class="main">
+  <main class="main" id="v-listings">
     <div class="head">
       <div><div class="lbl" style="margin-bottom:14px">Manage</div><h1>Listings</h1></div>
       <button class="btn" id="add" type="button">+ Add listing</button>
@@ -130,6 +144,15 @@ input,select,textarea,button{font:inherit;color:inherit}
     <div class="hint">Featured listings (up to 3) appear on the homepage. Changes go live as soon as you save.</div>
     <div class="rows" id="rows"></div>
     <div class="empty" id="empty" hidden>No listings here yet.</div>
+  </main>
+  <main class="main" id="v-videos" hidden>
+    <div class="head">
+      <div><div class="lbl" style="margin-bottom:14px">Homepage</div><h1>TikTok videos</h1></div>
+      <div class="hint" style="max-width:380px;padding:0">Paste a TikTok link. The thumbnail and caption fill in automatically. The first 8 visible videos show on the homepage, in this order.</div>
+    </div>
+    <form class="vadd" id="vadd"><input class="in" name="url" type="url" required placeholder="https://www.tiktok.com/@handle/video/…"><button class="btn" type="submit">+ Add video</button></form>
+    <div class="rows" id="vrows"></div>
+    <div class="empty" id="vempty" hidden>No videos yet. Paste a TikTok link above.</div>
   </main>
 </div>
 
@@ -192,6 +215,98 @@ function show(session) {
   $('#app').hidden = !session;
   if (session) { $('#who').textContent = session.user.email; load(); }
 }
+/* ---------- views ---------- */
+const API = 'https://bradygrouphomes.com/api/tiktok.php';
+$('#views').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#views button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  $('#v-listings').hidden = b.dataset.v !== 'listings';
+  $('#v-videos').hidden = b.dataset.v !== 'videos';
+  if (b.dataset.v === 'videos') loadVideos();
+});
+
+/* ---------- tiktok ---------- */
+let videos = [], delVid = null;
+async function loadVideos() {
+  const { data, error } = await sb.from('videos').select('*').order('sort').order('created_at', { ascending: false });
+  if (error) return fail(error, 'Couldn’t load videos');
+  videos = data; renderVideos();
+}
+function renderVideos() {
+  $('#vempty').hidden = videos.length > 0;
+  $('#vrows').innerHTML = videos.map((v, i) => `
+    <div class="vrow" data-id="${v.id}" ${v.visible ? '' : 'data-hidden'}>
+      <div class="vord"><button type="button" data-va="up" ${i ? '' : 'disabled'} aria-label="Move up">▲</button>${i + 1}<button type="button" data-va="down" ${i < videos.length - 1 ? '' : 'disabled'} aria-label="Move down">▼</button></div>
+      <div class="vthumb" style="${v.thumb ? `background-image:url('${esc(v.thumb)}')` : ''}"></div>
+      <div class="vin">
+        <input class="cap" data-vf="caption" value="${esc(v.caption)}" placeholder="Caption" aria-label="Caption">
+        <label class="lbl">Views <input class="in vw" data-vf="views" value="${esc(v.views)}" placeholder="1.2M"></label>
+        <button type="button" class="tog" data-va="vis" role="switch" aria-checked="${!!v.visible}"><i></i>Visible</button>
+        <a class="tlink" href="${esc(v.url)}" target="_blank" rel="noopener">Open ↗</a>
+        <button type="button" class="tlink muted" data-va="del">${delVid === v.id ? 'Confirm delete' : 'Delete'}</button>
+      </div>
+    </div>`).join('');
+}
+async function saveOrder() {
+  const res = await Promise.all(videos.map((v, i) => sb.from('videos').update({ sort: i }).eq('id', v.id)));
+  const bad = res.find((r) => r.error); if (bad) fail(bad.error, 'Couldn’t save order');
+}
+async function copyThumb(src) {
+  try {
+    const r = await fetch(API + '?img=' + encodeURIComponent(src));
+    if (!r.ok) throw new Error('thumb ' + r.status);
+    const path = `tiktok/${crypto.randomUUID()}.jpg`;
+    const { error } = await sb.storage.from(BUCKET).upload(path, await r.blob(), { contentType: 'image/jpeg', cacheControl: '31536000' });
+    if (error) throw error;
+    return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  } catch (e) { console.warn(e); return src; }
+}
+$('#vadd').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = e.target.url.value.trim(), btn = e.target.querySelector('.btn');
+  if (!/tiktok\.com\//i.test(url)) return toast('Paste a TikTok video link');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  let caption = null, thumb = null;
+  try {
+    const r = await fetch(API + '?url=' + encodeURIComponent(url));
+    const j = await r.json();
+    if (r.ok) { caption = j.title || null; if (j.thumbnail_url) thumb = await copyThumb(j.thumbnail_url); }
+  } catch (x) { console.warn(x); }
+  const { error } = await sb.from('videos').insert({ url, caption, thumb, visible: true, sort: -1 });
+  btn.disabled = false; btn.textContent = '+ Add video';
+  if (error) return fail(error, 'Couldn’t add video');
+  e.target.reset();
+  toast(thumb ? 'Video added' : 'Video added. Add a caption; the thumbnail couldn’t be fetched.');
+  await loadVideos(); saveOrder();
+});
+$('#vrows').addEventListener('change', async (e) => {
+  const f = e.target.dataset.vf; if (!f) return;
+  const id = e.target.closest('.vrow').dataset.id;
+  const { error } = await sb.from('videos').update({ [f]: e.target.value.trim() || null }).eq('id', id);
+  if (error) return fail(error, 'Couldn’t save');
+  videos = videos.map((v) => (v.id === id ? { ...v, [f]: e.target.value.trim() } : v)); toast('Saved');
+});
+$('#vrows').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-va]'); if (!b) return;
+  const id = b.closest('.vrow').dataset.id, i = videos.findIndex((v) => v.id === id), v = videos[i];
+  if (b.dataset.va === 'up' || b.dataset.va === 'down') {
+    const j = i + (b.dataset.va === 'up' ? -1 : 1);
+    [videos[i], videos[j]] = [videos[j], videos[i]]; renderVideos(); saveOrder();
+  }
+  if (b.dataset.va === 'vis') {
+    const { error } = await sb.from('videos').update({ visible: !v.visible }).eq('id', id);
+    if (error) return fail(error, 'Couldn’t save');
+    v.visible = !v.visible; renderVideos(); toast(v.visible ? 'Showing on homepage' : 'Hidden from homepage');
+  }
+  if (b.dataset.va === 'del') {
+    if (delVid !== id) { delVid = id; return renderVideos(); }
+    const { error } = await sb.from('videos').delete().eq('id', id);
+    if (error) return fail(error, 'Couldn’t delete');
+    const p = v.thumb?.split(`/${BUCKET}/`)[1]; if (p) sb.storage.from(BUCKET).remove([p]);
+    delVid = null; videos.splice(i, 1); renderVideos(); toast('Video removed');
+  }
+});
+
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') setTimeout(async () => {
     const pw = prompt('Choose a new password (at least 8 characters):');

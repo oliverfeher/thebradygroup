@@ -1,7 +1,7 @@
 ---
-interface Props { kind: 'contact' | 'valuation' | 'alerts'; area?: string; button?: string }
+interface Props { kind: 'contact' | 'valuation' | 'alerts' | 'guide'; area?: string; button?: string }
 const { kind, area = '', button } = Astro.props;
-const label = button ?? { contact: 'Send to Devin', valuation: 'Get my valuation', alerts: 'Send me listings' }[kind];
+const label = button ?? { contact: 'Send to Devin', valuation: 'Get my valuation', alerts: 'Send me listings', guide: 'Get both guides' }[kind];
 ---
 <div class="lead">
   <form class="lead-form" data-lead data-kind={kind} data-area={area} novalidate>
@@ -62,6 +62,7 @@ const label = button ?? { contact: 'Send to Devin', valuation: 'Get my valuation
         if (!res.ok || !out.ok) throw new Error(out.error || 'send failed');
         form.hidden = true;
         (form.nextElementSibling as HTMLElement).hidden = false;
+        form.dispatchEvent(new CustomEvent('lead:sent', { bubbles: true }));
       } catch (x) {
         fail('Something went wrong sending your message. Please call or text 316-730-3642.');
       } finally {

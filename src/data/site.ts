@@ -10,6 +10,33 @@ export const SITE = {
   url: 'https://bradygrouphomes.com',
   // TODO: Devin's Zillow agent profile URL (leave '' to hide the link)
   zillowProfile: '',
+  // TODO: Devin's TikTok profile URL, e.g. https://www.tiktok.com/@handle
+  tiktokProfile: 'https://www.tiktok.com/',
+  // TODO: fill in; empty ones are hidden
+  socials: [['TikTok', 'https://www.tiktok.com/'], ['Instagram', ''], ['Facebook', ''], ['YouTube', '']] as [string, string][],
+  bookingUrl: '', // e.g. Calendly link; falls back to /contact/
+  googleReviewsUrl: '',
+};
+
+export const STATS: [string, string][] = [['20', 'Homes sold'], ['$5.5M', 'Total sales volume'], ['$276.2K', 'Average sale price'], ['$223K–$365K', 'Price range']];
+export const STATS_NOTE = 'Closed sales · prior 5 years · Verified on Homes.com';
+export const STATS_SOURCE = 'https://www.homes.com/real-estate-agents/devin-brady/x633e3q/';
+
+export const GUIDES = [
+  { title: 'Raleigh–Goldsboro Relocation Guide', short: 'Relocation Guide', desc: 'Where to live between the Triangle and Wayne County, with commutes, neighborhoods and cost of living.', file: '/guides/Raleigh-Goldsboro-Relocation-Guide.pdf' },
+  { title: 'VA Home Buyers Guide', short: 'VA Home Buyers', desc: 'How VA loans work, what to expect at appraisal and closing, and how to buy with orders in hand.', file: '/guides/VA-Home-Buyers-Guide.pdf' },
+];
+
+// Leave empty to hide the reviews section until real Google reviews are pasted in.
+export const REVIEWS: { q: string; who: string }[] = [];
+
+export const DRIVE: Record<string, [string, string]> = {
+  'goldsboro-nc': ['10 min to SJAFB', 'Wayne County'],
+  'wayne-county-nc': ['15–30 min to SJAFB', 'Mount Olive · Fremont · Pikeville'],
+  'seymour-johnson-afb': ['On-base & nearby', 'Goldsboro, Wayne County'],
+  'wilson-nc': ['~35 min to SJAFB', 'Wilson County'],
+  'smithfield-nc': ['~40 min to SJAFB', 'Johnston County'],
+  'raleigh-nc': ['~1 hr to SJAFB', 'Wake County'],
 };
 
 export const NAV = [

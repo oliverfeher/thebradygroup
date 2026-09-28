@@ -13,7 +13,7 @@ supabase/schema.sql database, security rules, photo bucket
 
 ## 1. Supabase (one time, ~10 min)
 1. Create a free project at supabase.com.
-2. **SQL Editor** → paste `supabase/schema.sql` → Run.
+2. **SQL Editor** → paste `supabase/schema.sql` → Run. Then run `supabase/seed.sql` to load Devin's current and recent listings.
 3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up". Email provider stays on.
 4. **Authentication → Users → Add user** (auto-confirm): Devin's email, then the assistant's. Set passwords.
 5. **Authentication → URL Configuration**: Site URL = `https://admin.bradygrouphomes.com`. Add the same URL to Redirect URLs (used for password resets).
@@ -60,7 +60,11 @@ The IP is under **Site Tools → Dashboard → Site IP**. Changes can take up to
 ## Using the admin (for Devin)
 Go to admin.bradygrouphomes.com and sign in. **+ Add listing** takes photos (the first one is the cover), address, price, status and Zillow/Realtor.com links. Change a listing's status from the list, and toggle **Featured** to show up to 3 on the homepage. Changes are live right away.
 
+**TikTok tab:** paste a video link and click **+ Add video**. The caption and thumbnail fill in automatically; type the view count if you want it shown. Use ▲▼ to reorder and **Visible** to hide a video. The first 8 visible videos appear on the homepage.
+
+> Already ran schema.sql before TikTok was added? Run just the `videos` section at the bottom of it.
+
 ## Still to fill in
+- `src/data/site.ts → tiktokProfile`: Devin's TikTok profile URL
 - `src/data/site.ts → zillowProfile`: Devin's Zillow agent page (the link stays hidden until it's set)
 - Have Devin review the area copy and facts in `site.ts`
-# thebradygroup
