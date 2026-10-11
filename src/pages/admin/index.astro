@@ -118,19 +118,28 @@ input,select,textarea,button{font:inherit;color:inherit}
 .vin label{display:flex;align-items:center;gap:8px}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--navy);color:var(--ivory);padding:14px 22px;font:700 12px/1.3 var(--sans);letter-spacing:.14em;text-transform:uppercase;z-index:20;box-shadow:0 8px 24px rgba(16,39,86,.25);max-width:calc(100% - 32px);text-align:center}
 .subnav{display:none}
+.menu-t{display:none}
+.mtabs{display:none}
+.mtabs button{border:0;background:none;padding:16px 0 14px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--taupe);font:700 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.mtabs button[aria-pressed=true]{color:var(--navy);border-color:var(--navy)}
+.menu{position:fixed;inset:0;z-index:30;background:var(--navy);color:var(--ivory);display:flex;flex-direction:column;padding:calc(76px + env(safe-area-inset-top)) clamp(16px,4vw,40px) calc(28px + env(safe-area-inset-bottom))}
+.menu-in{display:grid;border-top:1px solid var(--taupe)}
+.menu-in button,.menu-in a{display:block;text-align:left;border:0;border-bottom:1px solid var(--taupe);background:none;padding:20px 0;color:var(--ivory);font:400 24px/1 var(--serif);text-transform:uppercase;letter-spacing:.06em;text-decoration:none;cursor:pointer}
+.menu-in [aria-current=page]{color:var(--mist)}
+.menu-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:13px;color:var(--mist)}
+.menu-foot button{border:1px solid var(--ivory);background:none;color:var(--ivory);padding:12px 18px;font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+body.menu-open .bar{position:relative;z-index:31}
 @media (max-width:760px){
-  .bar{padding-block:10px;padding-top:calc(10px + env(safe-area-inset-top))}.bar img{height:28px}.bar .div,.bar .t,.bar-r .who,.bar-r a{display:none}
-  .bar-r{font-size:11px}
-  .views{position:fixed;left:0;right:0;bottom:0;z-index:9;margin:0;gap:0;background:var(--navy);padding:0 0 env(safe-area-inset-bottom)}
-  .views button{flex:1;height:60px;padding:0 2px;border-bottom:0;border-top:3px solid transparent;font-size:10px;letter-spacing:.12em}
-  .views button[aria-pressed=true]{border-top-color:var(--ivory);border-bottom:0}
-  .views button[data-v=videos]{display:none}
-  .main{padding-top:24px;padding-bottom:120px}
+  .bar{padding-block:12px;padding-top:calc(12px + env(safe-area-inset-top))}.bar img{height:28px}
+  .bar .div,.bar .t,.bar-r .who,.bar-r a,.bar-r #signout,.views{display:none}
+  .menu-t{display:block!important}
+  .mtabs{display:flex;position:sticky;top:0;z-index:9;background:var(--ivory);border-bottom:1px solid var(--gray);padding:0 clamp(16px,4vw,40px);gap:26px}
+  .main{padding-top:24px;padding-bottom:96px}
   #v-videos .head{flex-wrap:wrap}
   .subnav{display:flex;gap:24px;margin-bottom:20px;border-bottom:1px solid var(--gray)}
   .subnav a{padding:0 0 12px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--taupe);font:700 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;text-decoration:none}
   .subnav a[aria-current=page]{color:var(--navy);border-color:var(--navy)}
-  .toast{bottom:96px}
+  .toast{bottom:calc(92px + env(safe-area-inset-bottom))}
   .db{padding:20px}.dh{padding:18px 20px}.df{padding:14px 20px calc(14px + env(safe-area-inset-bottom))}
 }
 @media (max-width:560px){.row{grid-template-columns:84px minmax(0,1fr);gap:14px}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:1fr}.head h1{font-size:34px}}
@@ -166,8 +175,21 @@ window.TBG = { sb: createClient(window.TBG_CFG.url, window.TBG_CFG.key), $, esc,
 <div id="app" hidden>
   <header class="bar">
     <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Admin</span><nav class="views" id="views"><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="contacts" aria-pressed="false">Contacts</button><button type="button" data-v="pipeline" aria-pressed="false">Pipeline</button><button type="button" data-v="listings" aria-pressed="false">Listings</button><button type="button" data-v="videos" aria-pressed="false">TikTok</button></nav></div>
-    <div class="bar-r"><span class="who" id="who"></span><a href="https://bradygrouphomes.com/listings/" target="_blank" rel="noopener">View site ↗</a><button id="signout" type="button">Sign out</button></div>
+    <div class="bar-r"><span class="who" id="who"></span><a href="https://bradygrouphomes.com/listings/" target="_blank" rel="noopener">View site ↗</a><button id="signout" type="button">Sign out</button><button class="menu-t" id="menu-t" type="button" aria-expanded="false" aria-controls="menu">Menu</button></div>
   </header>
+  <nav class="mtabs" id="mtabs" aria-label="CRM"><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="contacts" aria-pressed="false">Contacts</button><button type="button" data-v="pipeline" aria-pressed="false">Pipeline</button></nav>
+  <div class="menu" id="menu" hidden>
+    <nav class="menu-in" aria-label="Menu">
+      <button type="button" data-v="today">Today</button>
+      <button type="button" data-v="contacts">Contacts</button>
+      <button type="button" data-v="pipeline">Pipeline</button>
+      <button type="button" data-v="listings">Listings</button>
+      <button type="button" data-v="videos">TikTok videos</button>
+      <button type="button" id="menu-import">Import contacts</button>
+      <a href="https://bradygrouphomes.com/" target="_blank" rel="noopener">View website ↗</a>
+    </nav>
+    <div class="menu-foot"><span id="menu-who"></span><button type="button" id="menu-out">Sign out</button></div>
+  </div>
   <Crm />
   <main class="main" id="v-listings" hidden>
     <nav class="subnav"><a href="#listings" aria-current="page">Listings</a><a href="#videos">TikTok</a></nav>
@@ -246,7 +268,7 @@ function show(session) {
   $('#app').hidden = !session;
   const was = signedIn; signedIn = !!session;
   document.dispatchEvent(new CustomEvent('tbg:session', { detail: session }));
-  if (session) $('#who').textContent = session.user.email;
+  if (session) $('#who').textContent = $('#menu-who').textContent = session.user.email;
   if (session && !was) route();
   if (!session) current = null;
 }
@@ -258,7 +280,8 @@ function go(v) {
   document.body.dataset.view = v;
   // On phones TikTok lives under Listings, so keep that tab lit.
   const tiktokHidden = $('#views [data-v=videos]').offsetParent === null;
-  document.querySelectorAll('#views button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v || (tiktokHidden && v === 'videos' && x.dataset.v === 'listings'))));
+  document.querySelectorAll('#views button, #mtabs button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v || (tiktokHidden && v === 'videos' && x.dataset.v === 'listings'))));
+  document.querySelectorAll('#menu [data-v]').forEach((x) => x.toggleAttribute('aria-current', x.dataset.v === v));
   VIEWS.forEach((k) => ($('#v-' + k).hidden = k !== v));
   if (v === 'listings') load();
   if (v === 'videos') loadVideos();
@@ -275,7 +298,21 @@ function route() {
   }
   go(VIEWS.includes(v) ? v : 'today');
 }
-$('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) location.hash = b.dataset.v; });
+['#views', '#mtabs'].forEach((s) => $(s).addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) location.hash = b.dataset.v; }));
+/* phone menu */
+function menu(open) {
+  $('#menu').hidden = !open; $('#menu-t').setAttribute('aria-expanded', String(open));
+  $('#menu-t').textContent = open ? 'Close' : 'Menu';
+  document.body.classList.toggle('menu-open', open); document.body.style.overflow = open ? 'hidden' : '';
+}
+$('#menu-t').addEventListener('click', () => menu($('#menu').hidden));
+$('#menu').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-v]'); if (b) { menu(false); location.hash = b.dataset.v; }
+  if (e.target.closest('a')) menu(false);
+});
+$('#menu-import').addEventListener('click', () => { menu(false); location.hash = 'contacts'; setTimeout(() => $('#c-import').click(), 50); });
+$('#menu-out').addEventListener('click', () => { menu(false); sb.auth.signOut(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#menu').hidden) menu(false); });
 window.addEventListener('hashchange', () => { if (signedIn) route(); });
 const API = 'https://bradygrouphomes.com/api/tiktok.php';
 

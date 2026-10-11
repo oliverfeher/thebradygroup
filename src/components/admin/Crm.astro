@@ -244,7 +244,9 @@
   .eyebrow-opt{display:none}
   .head{flex-wrap:nowrap;align-items:center;margin-bottom:20px}
   .head h1{font-size:30px}
-  #v-today .head{align-items:flex-end}
+  /* the sticky tab row already names the screen */
+  #v-today .head h1,#v-contacts .head,#v-pipeline .head{display:none}
+  #v-today .head{margin-bottom:12px}
   #t-date{margin-bottom:8px!important}
   .head-btns .btn{padding:11px 14px}
   .stats{margin-bottom:28px}.stats div{padding:12px 0;gap:6px}.stats div+div{padding-left:12px}.stats b{font-size:26px}
@@ -272,7 +274,7 @@
   .cd-grid{grid-template-columns:1fr;gap:18px}
   .fu-q{grid-template-columns:repeat(4,minmax(0,1fr))}
   .chips.sm button{padding:11px 12px}
-  .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:8;width:56px;height:56px;border:0;background:var(--navy);color:var(--ivory);font:400 32px/1 var(--serif);cursor:pointer;box-shadow:0 6px 18px rgba(16,39,86,.3)}
+  .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:8;width:56px;height:56px;border:0;background:var(--navy);color:var(--ivory);font:400 32px/1 var(--serif);cursor:pointer;box-shadow:0 6px 18px rgba(16,39,86,.3)}
   body:not([data-view=today]):not([data-view=contacts]) .fab{display:none}
 }
 </style>
