@@ -38,11 +38,12 @@ Forms need PHP, so they only work once the site is on SiteGround.
 4. Lead emails go to `devinbrady77@gmail.com` with a BCC to `info@hustle-haus.com` (`public/api/config.php`).
    > If test leads land in spam, create `leads@bradygrouphomes.com` under **Email → Accounts** and set it as `from` in config.php.
 
-### Auto-deploy from GitHub (optional)
-`.github/workflows/deploy.yml` builds and uploads over FTPS on every push to `main`. Add these repo secrets:
-`PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`,
-`FTP_SITE_DIR` (e.g. `/bradygrouphomes.com/public_html/`), `FTP_ADMIN_DIR` (e.g. `/admin.bradygrouphomes.com/public_html/`).
-Get the FTP details from **Site Tools → Devs → FTP Accounts**.
+### Auto-deploy from GitHub
+`.github/workflows/deploy.yml` builds and uploads over FTPS on every push to `main`. Repo secrets (set up and working):
+`PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY` (public key only), `FTP_HOST` = `gvam1031.siteground.biz`
+(must match the FTP server's certificate; the domain name fails TLS), `FTP_USER` = `deploy@bradygrouphomes.com`, `FTP_PASSWORD`,
+`FTP_SITE_DIR` = `/bradygrouphomes.com/public_html/`, `FTP_ADMIN_DIR` = `/admin.bradygrouphomes.com/public_html/`.
+The workflow refuses to upload unless both folders already contain an index.html. FTP account: **Site Tools → Devs → FTP Accounts**.
 
 ## 4. DNS (GoDaddy / Namecheap)
 Either switch the domain's nameservers to SiteGround's (easiest: SiteGround then manages DNS and email), **or** keep DNS where it is and add:
