@@ -1,4 +1,4 @@
--- The Brady Group: run once in Supabase → SQL Editor.
+-- The Brady Group: run once in Supabase → SQL Editor. Then run crm.sql for the CRM tables.
 
 create table if not exists public.listings (
   id           uuid primary key default gen_random_uuid(),

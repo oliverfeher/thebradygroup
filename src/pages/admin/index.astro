@@ -1,6 +1,8 @@
 ---
 // Self-contained admin page (inline CSS + JS, supabase-js from CDN) so it can be
 // uploaded on its own to the admin.bradygrouphomes.com subdomain folder.
+// Views: Today / Contacts / Pipeline (CRM, in components/admin/Crm.astro) + Listings / TikTok.
+import Crm from '../../components/admin/Crm.astro';
 const cfg = { url: import.meta.env.PUBLIC_SUPABASE_URL, key: import.meta.env.PUBLIC_SUPABASE_ANON_KEY };
 const ASSET = 'https://bradygrouphomes.com/assets';
 ---
@@ -12,6 +14,11 @@ const ASSET = 'https://bradygrouphomes.com/assets';
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · The Brady Group</title>
 <link rel="icon" href={`${ASSET}/bg-primary.png`}>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#102756">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Brady CRM">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
@@ -110,9 +117,27 @@ input,select,textarea,button{font:inherit;color:inherit}
 .vin .vw{width:84px;padding:8px 10px;font-size:14px}
 .vin label{display:flex;align-items:center;gap:8px}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--navy);color:var(--ivory);padding:14px 22px;font:700 12px/1.3 var(--sans);letter-spacing:.14em;text-transform:uppercase;z-index:20;box-shadow:0 8px 24px rgba(16,39,86,.25);max-width:calc(100% - 32px);text-align:center}
+@media (max-width:760px){
+  .bar{padding-block:12px}.bar img{height:32px}.bar .div,.bar .t,.bar-r .who,.bar-r a{display:none}
+  .views{position:fixed;left:0;right:0;bottom:0;z-index:9;margin:0;gap:0;justify-content:space-around;background:var(--navy);border-top:1px solid var(--taupe);padding:12px 4px calc(12px + env(safe-area-inset-bottom))}
+  .views button{font-size:10px;letter-spacing:.12em;padding:8px 4px}
+  .main{padding-top:32px;padding-bottom:140px}
+  .toast{bottom:96px}
+  .db{padding:20px}.dh{padding:18px 20px}.df{padding:14px 20px calc(14px + env(safe-area-inset-bottom))}
+}
 @media (max-width:560px){.row{grid-template-columns:84px minmax(0,1fr);gap:14px}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:1fr}.head h1{font-size:34px}}
 </style>
 <script is:inline set:html={`window.TBG_CFG=${JSON.stringify(cfg)}`}></script>
+<script type="module" is:inline>
+// Shared Supabase client + helpers for every admin view. Module scripts run in document order,
+// so this runs before the CRM and listings scripts further down.
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2800); }
+function fail(e, fallback = 'Something went wrong') { console.error(e); toast(e?.message ? `${fallback}: ${e.message}` : fallback); }
+window.TBG = { sb: createClient(window.TBG_CFG.url, window.TBG_CFG.key), $, esc, toast, fail };
+</script>
 </head>
 <body>
 
@@ -132,10 +157,11 @@ input,select,textarea,button{font:inherit;color:inherit}
 
 <div id="app" hidden>
   <header class="bar">
-    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Site admin</span><nav class="views" id="views"><button type="button" data-v="listings" aria-pressed="true">Listings</button><button type="button" data-v="videos" aria-pressed="false">TikTok</button></nav></div>
+    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Admin</span><nav class="views" id="views"><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="contacts" aria-pressed="false">Contacts</button><button type="button" data-v="pipeline" aria-pressed="false">Pipeline</button><button type="button" data-v="listings" aria-pressed="false">Listings</button><button type="button" data-v="videos" aria-pressed="false">TikTok</button></nav></div>
     <div class="bar-r"><span class="who" id="who"></span><a href="https://bradygrouphomes.com/listings/" target="_blank" rel="noopener">View site ↗</a><button id="signout" type="button">Sign out</button></div>
   </header>
-  <main class="main" id="v-listings">
+  <Crm />
+  <main class="main" id="v-listings" hidden>
     <div class="head">
       <div><div class="lbl" style="margin-bottom:14px">Manage</div><h1>Listings</h1></div>
       <button class="btn" id="add" type="button">+ Add listing</button>
@@ -192,38 +218,53 @@ input,select,textarea,button{font:inherit;color:inherit}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script type="module" is:inline>
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const sb = createClient(window.TBG_CFG.url, window.TBG_CFG.key);
+const { sb, $, esc, toast, fail } = window.TBG;
 const BUCKET = 'listing-photos';
 const STATUSES = ['Just listed', 'For sale', 'Under contract', 'Sold'];
 const FILTERS = { All: () => true, Active: (l) => l.status === 'Just listed' || l.status === 'For sale', 'Under contract': (l) => l.status === 'Under contract', Sold: (l) => l.status === 'Sold' };
-const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = (v) => (v ? '$' + Number(v).toLocaleString('en-US') : '$—');
 const specs = (l) => [l.beds && l.beds + ' bd', l.baths && l.baths + ' ba', l.sqft && Number(l.sqft).toLocaleString('en-US') + ' sq ft'].filter(Boolean).join(' · ') || 'Add beds, baths and square footage';
 const num = (v) => { const n = Number(String(v ?? '').replace(/[^0-9.]/g, '')); return n || null; };
 
 let listings = [], filter = 'All', draft = null, editId = null, confirmDel = false, uploading = 0;
 
-function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2800); }
-function fail(e, fallback = 'Something went wrong') { console.error(e); toast(e?.message ? `${fallback}: ${e.message}` : fallback); }
-
 /* ---------- auth ---------- */
+let signedIn = false;
 function show(session) {
   $('#loading').hidden = true;
   $('#login').hidden = !!session;
   $('#app').hidden = !session;
-  if (session) { $('#who').textContent = session.user.email; load(); }
+  const was = signedIn; signedIn = !!session;
+  document.dispatchEvent(new CustomEvent('tbg:session', { detail: session }));
+  if (session) $('#who').textContent = session.user.email;
+  if (session && !was) route();
+  if (!session) current = null;
 }
-/* ---------- views ---------- */
+/* ---------- views (hash routes: #today #contacts #pipeline #listings #videos, #c/<id> opens a contact) ---------- */
+const VIEWS = ['today', 'contacts', 'pipeline', 'listings', 'videos'];
+let current = null;
+function go(v) {
+  current = v;
+  document.querySelectorAll('#views button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v)));
+  VIEWS.forEach((k) => ($('#v-' + k).hidden = k !== v));
+  if (v === 'listings') load();
+  if (v === 'videos') loadVideos();
+  document.dispatchEvent(new CustomEvent('tbg:view', { detail: { view: v } }));
+  window.scrollTo(0, 0);
+}
+function route() {
+  const h = location.hash.slice(1);
+  if (h.includes('=')) { history.replaceState(null, '', '#today'); return go('today'); } // auth redirect leftovers
+  const [v, arg] = h.split('/');
+  if (v === 'c' && arg) {
+    if (!current) go('today');
+    return document.dispatchEvent(new CustomEvent('tbg:view', { detail: { view: 'c', arg } }));
+  }
+  go(VIEWS.includes(v) ? v : 'today');
+}
+$('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) location.hash = b.dataset.v; });
+window.addEventListener('hashchange', () => { if (signedIn) route(); });
 const API = 'https://bradygrouphomes.com/api/tiktok.php';
-$('#views').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return;
-  document.querySelectorAll('#views button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-  $('#v-listings').hidden = b.dataset.v !== 'listings';
-  $('#v-videos').hidden = b.dataset.v !== 'videos';
-  if (b.dataset.v === 'videos') loadVideos();
-});
 
 /* ---------- tiktok ---------- */
 let videos = [], delVid = null;

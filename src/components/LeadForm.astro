@@ -46,6 +46,8 @@ const label = button ?? { contact: 'Send to Devin', valuation: 'Get my valuation
       e.preventDefault();
       err.hidden = true;
       const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
+      let src = { source: '', detail: '' };
+      try { src = JSON.parse(localStorage.getItem('tbg_src') || '') || src; } catch {}
       if (!data.name?.trim()) return fail('Please add your name.');
       if (form.dataset.kind === 'valuation' && !data.address?.trim()) return fail('Please add the home address.');
       if (!data.phone?.trim() && !data.email?.trim()) return fail('Add a phone number or email so Devin can reach you.');
@@ -56,7 +58,7 @@ const label = button ?? { contact: 'Send to Devin', valuation: 'Get my valuation
       try {
         const res = await fetch('/api/lead.php', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, kind: form.dataset.kind, area: form.dataset.area, page: location.pathname }),
+          body: JSON.stringify({ ...data, kind: form.dataset.kind, area: form.dataset.area, page: location.pathname, source: src.source, source_detail: src.detail }),
         });
         const out = await res.json().catch(() => ({}));
         if (!res.ok || !out.ok) throw new Error(out.error || 'send failed');

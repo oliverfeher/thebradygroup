@@ -1,0 +1,57 @@
+---
+// Link-in-bio page for TikTok (bradygrouphomes.com/start/). Every lead from here is tagged "tiktok" in the CRM.
+// For another channel use ?src=instagram etc.; the query param wins over the page default.
+import Base from '../layouts/Base.astro';
+import LeadForm from '../components/LeadForm.astro';
+import { SITE, GUIDES } from '../data/site';
+const paths: [string, string, string][] = [
+  ['Buying', 'Start your home search', '/buy/'],
+  ['Selling', 'What is my home worth?', '/sell/#valuation'],
+  ['Military', 'PCSing to Seymour Johnson AFB', '/military/'],
+  ['Listings', 'See homes for sale now', '/listings/'],
+];
+---
+<Base title="Start here" description="Buying, selling or PCSing to Seymour Johnson AFB? Start here with Devin Brady, REALTOR® and U.S. Air Force veteran." noindex source="tiktok">
+  <section class="wrap section start">
+    <div class="stack" style="gap:18px">
+      <p class="eyebrow">Devin Brady, REALTOR® · USAF veteran</p>
+      <h1 class="display">Where are you in your move?</h1>
+    </div>
+    <nav class="start-paths" aria-label="Choose a path">
+      {paths.map(([k, v, href]) => <a href={href}><span class="eyebrow">{k}</span><span class="v">{v}<span aria-hidden="true">→</span></span></a>)}
+      <a href={SITE.phoneHref}><span class="eyebrow">Talk to Devin</span><span class="v">Call or text {SITE.phone}<span aria-hidden="true">→</span></span></a>
+    </nav>
+  </section>
+
+  <section class="navy" id="guides">
+    <div class="wrap section stack" style="gap:28px">
+      <div class="stack" style="gap:14px"><p class="eyebrow">Free guides</p><h2 class="h2">Relocation &amp; VA guides</h2></div>
+      <ul class="start-guides">
+        {GUIDES.map((g) => <li><strong>{g.title}</strong><span>{g.desc}</span><a class="link" href={g.file} download hidden data-guide-dl>Download PDF ↓</a></li>)}
+      </ul>
+      <div class="guide-form"><LeadForm kind="guide" /></div>
+    </div>
+  </section>
+
+  <section class="wrap section stack" style="gap:24px">
+    <div class="stack" style="gap:14px"><p class="eyebrow">Questions?</p><h2 class="h2">Send Devin a note</h2></div>
+    <div class="panel"><LeadForm kind="contact" /></div>
+  </section>
+</Base>
+
+<style>
+  .start { display: grid; gap: 40px; }
+  .start-paths { display: grid; border-top: 1px solid var(--gray); }
+  .start-paths a { display: grid; gap: 10px; padding: 22px 0; border-bottom: 1px solid var(--gray); color: var(--navy); text-decoration: none; }
+  .start-paths .v { display: flex; justify-content: space-between; gap: 16px; font: 400 clamp(20px, 5vw, 26px)/1.2 var(--serif); text-transform: uppercase; letter-spacing: .04em; }
+  .start-paths a:hover .v { text-decoration: underline; }
+  .start-guides { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+  .start-guides li { display: grid; gap: 6px; }
+  .start-guides strong { font: 400 20px/1.2 var(--serif); text-transform: uppercase; letter-spacing: .04em; }
+</style>
+
+<script>
+  document.addEventListener('lead:sent', (e) => {
+    if ((e.target as HTMLElement).closest('.guide-form')) document.querySelectorAll<HTMLElement>('[data-guide-dl]').forEach((a) => (a.hidden = false));
+  });
+</script>

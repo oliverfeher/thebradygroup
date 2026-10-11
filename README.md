@@ -64,6 +64,33 @@ Go to admin.bradygrouphomes.com and sign in. **+ Add listing** takes photos (the
 
 > Already ran schema.sql before TikTok was added? Run just the `videos` section at the bottom of it.
 
+## CRM (Today / Contacts / Pipeline in the admin)
+Website leads land in the CRM automatically and Devin gets a 7am email of who to contact.
+
+**One-time setup:**
+1. Supabase **SQL Editor** → paste `supabase/crm.sql` → Run.
+2. Supabase **Project Settings → API Keys**: copy the **secret** key (`sb_secret_…`, or the legacy `service_role` key). Never put it in git or the browser.
+3. In SiteGround File Manager, create `tbg-secrets.php` **one level above** `public_html` (i.e. `/home/customer/www/bradygrouphomes.com/tbg-secrets.php`):
+   ```php
+   <?php return ['supabase_url' => 'https://xxxx.supabase.co', 'supabase_key' => 'sb_secret_…'];
+   ```
+4. **Site Tools → Devs → Cron Jobs**: add, running **every hour** (it only sends at 7am Eastern):
+   `php /home/customer/www/bradygrouphomes.com/public_html/api/digest.php`
+   To test right away, run it once over SSH with `--now` at the end.
+5. Submit a test lead on the site. It should show up under **Today** and in the email with an "Open in CRM" link.
+
+If Supabase is down or not configured, lead emails still go out; check the PHP error log for `TBG CRM ingest failed`.
+
+**TikTok link in bio:** `bradygrouphomes.com/start/`. Leads from that page are tagged TikTok. Any link can tag its source with `?src=instagram` (or `utm_source`).
+
+**For Devin:**
+- **Today** is the home screen: new leads to reach out to, overdue and due-today follow-ups, and pipeline leads with no next step. Tap **Call** or **Text**, then log what happened.
+- Every contact has one **next follow-up** date. Logging a call/text clears a due follow-up and asks for the next one.
+- **+ Add lead** is for TikTok DMs, calls and anyone met in person: name, phone, a couple of taps, done.
+- **Contacts → Import** loads iPhone (vCard) or Google (CSV) contacts. Duplicates are skipped.
+- **Pipeline**: drag cards between stages. Closing a deal moves the person to past clients.
+- On iPhone, open admin.bradygrouphomes.com in Safari → Share → **Add to Home Screen** to use it like an app.
+
 ## Still to fill in
 - `src/data/site.ts → tiktokProfile`: Devin's TikTok profile URL
 - `src/data/site.ts → zillowProfile`: Devin's Zillow agent page (the link stays hidden until it's set)

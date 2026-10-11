@@ -1,5 +1,5 @@
 <?php
-// Lead form handler: emails Devin (BCC Hustle Haus). Settings in config.php.
+// Lead form handler: saves the lead to the CRM (Supabase) and emails Devin (BCC Hustle Haus). Settings in config.php.
 header('Content-Type: application/json; charset=utf-8');
 header('X-Robots-Tag: noindex');
 
@@ -44,16 +44,36 @@ $message = $text('message');
 if ($name === '') out(422, ['ok' => false, 'error' => 'Name required']);
 if ($phone === '' && $email === '') out(422, ['ok' => false, 'error' => 'Phone or email required']);
 
+$source = strtolower(preg_replace('/[^a-z0-9_.-]/i', '', $line('source', 40)));
+$sourceDetail = $line('source_detail', 200);
+
 $rows = array_filter([
   'Type' => $kind, 'Name' => $name, 'Phone' => $phone, 'Email' => $email, 'Interested in' => $interest,
   'Home address' => $address, 'Area' => $area, 'Message' => $message, 'Page' => $page,
-  'Received' => date('D M j, Y g:i A T'),
+  'Came from' => trim($source . ($sourceDetail ? " ($sourceDetail)" : '')),
 ], fn($v) => $v !== '');
-$body = '';
-foreach ($rows as $k => $v) $body .= str_pad($k . ':', 16) . $v . "\n";
+$summary = '';
+foreach ($rows as $k => $v) $summary .= str_pad($k . ':', 16) . $v . "\n";
+
+// Save to the CRM. If Supabase is down the email below still goes out.
+require __DIR__ . '/supabase.php';
+[$code, $crm] = sb_request($cfg, 'POST', '/rest/v1/rpc/ingest_lead', ['p' => [
+  'kind' => $in['kind'] ?? '', 'name' => $name, 'phone' => $phone, 'email' => $email, 'interest' => $interest,
+  'address' => $address, 'area' => $area, 'message' => $message, 'page' => $page,
+  'source' => $source, 'source_detail' => $sourceDetail, 'summary' => trim($summary),
+]]);
+$crmId = ($code === 200 && !empty($crm['id'])) ? $crm['id'] : null;
+if (!$crmId && !empty($cfg['supabase_url'])) error_log("TBG CRM ingest failed ($code): " . json_encode($crm));
+
+$labels = ['past_client' => 'past client', 'sphere' => 'sphere contact', 'vendor' => 'vendor'];
+$returning = $crmId && !empty($crm['existing'])
+  ? 'Returning contact (already in the CRM' . (!empty($crm['prev_category']) && isset($labels[$crm['prev_category']]) ? ' as a ' . $labels[$crm['prev_category']] : '') . ").\n\n"
+  : '';
+$body = $returning . $summary . str_pad('Received:', 16) . date('D M j, Y g:i A T') . "\n";
+if ($crmId) $body .= "\nOpen in CRM: " . $cfg['crm_url'] . '#c/' . $crmId . "\n";
 $body .= "\nReply to this email to respond" . ($email ? " to $name directly." : '.') . "\n";
 
-$subject = "New lead: $kind, $name" . ($area ? " ($area)" : '');
+$subject = ($returning ? 'Returning lead' : 'New lead') . ": $kind, $name" . ($area ? " ($area)" : '');
 $headers = [
   'From: ' . $cfg['from_name'] . ' <' . $cfg['from'] . '>',
   'Reply-To: ' . ($email ? "$name <$email>" : $cfg['to']),
@@ -63,5 +83,6 @@ $headers = [
 if (!empty($cfg['bcc'])) $headers[] = 'Bcc: ' . $cfg['bcc'];
 
 $ok = mail($cfg['to'], '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, implode("\r\n", $headers), '-f' . $cfg['from']);
-if (!$ok) out(500, ['ok' => false, 'error' => 'Mail failed']);
+if (!$ok && !$crmId) out(500, ['ok' => false, 'error' => 'Mail failed']);
+if (!$ok) error_log("TBG lead email failed for CRM contact $crmId");
 out(200, ['ok' => true]);

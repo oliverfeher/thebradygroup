@@ -1,0 +1,764 @@
+---
+// CRM views for the admin: Today, Contacts, Pipeline, plus the contact drawer, quick add and import.
+// Everything is inline (like the rest of the admin) so dist/admin/index.html stays self-contained.
+// Relies on window.TBG (Supabase client + helpers) from admin/index.astro and listens for its
+// tbg:session / tbg:view events.
+---
+<main class="main" id="v-today" hidden>
+  <div class="head">
+    <div><div class="lbl" id="t-date" style="margin-bottom:14px"></div><h1>Today</h1></div>
+    <button class="btn" type="button" data-quick>+ Add lead</button>
+  </div>
+  <div class="stats" id="t-stats"></div>
+  <div id="t-body"></div>
+</main>
+
+<main class="main" id="v-contacts" hidden>
+  <div class="head">
+    <div><div class="lbl" style="margin-bottom:14px">Everyone</div><h1>Contacts</h1></div>
+    <div class="head-btns"><button class="btn ghost" type="button" id="c-import">Import</button><button class="btn" type="button" data-quick>+ Add contact</button></div>
+  </div>
+  <div class="cbar">
+    <input class="in" id="c-q" type="search" placeholder="Search name, phone, email, tag" autocomplete="off" aria-label="Search contacts">
+    <div class="sel2"><select class="in" id="c-stage" aria-label="Stage"></select></div>
+    <div class="sel2"><select class="in" id="c-type" aria-label="Looking to"></select></div>
+    <div class="sel2"><select class="in" id="c-sort" aria-label="Sort"></select></div>
+  </div>
+  <div class="tabs" id="c-tabs" role="group" aria-label="Filter"></div>
+  <div class="rows" id="c-rows"></div>
+  <div class="empty" id="c-empty" hidden>No contacts match.</div>
+  <div class="more"><button class="tlink" type="button" id="c-more" hidden>Show more</button></div>
+</main>
+
+<main class="main main-wide" id="v-pipeline" hidden>
+  <div class="head">
+    <div><div class="lbl" style="margin-bottom:14px">Deals in motion</div><h1>Pipeline</h1></div>
+    <div class="chips" id="p-types"></div>
+  </div>
+  <div class="hint">Drag a card to another column to change its stage, or tap it to open. Closed shows the last 90 days.</div>
+  <div class="board" id="p-board"></div>
+  <div class="hint" id="p-lost"></div>
+</main>
+
+<!-- Contact drawer -->
+<div id="cd" hidden>
+  <div class="scrim" data-x></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true" aria-labelledby="cd-name">
+    <div class="dh"><h2 id="cd-name"></h2><button type="button" data-x aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="cd-meta" id="cd-meta"></div>
+      <div class="cd-acts" id="cd-acts"></div>
+      <div class="fld"><span class="lbl">Stage</span><div class="chips sm" id="cd-stage"></div></div>
+      <div class="fld" id="cd-fu-wrap"><span class="lbl">Next follow-up <span id="cd-fu-note"></span></span>
+        <div class="fu"><input class="in" type="date" id="cd-fu" aria-label="Next follow-up date"><div class="chips sm" id="cd-fu-q"></div></div>
+      </div>
+      <form class="fld" id="cd-log">
+        <span class="lbl">Log activity</span>
+        <div class="chips sm" id="cd-kind"></div>
+        <div class="chips sm" id="cd-outcome"></div>
+        <textarea class="in" name="body" rows="3" placeholder="What happened? What's next?"></textarea>
+        <div><button class="btn" type="submit">Save to timeline</button></div>
+      </form>
+      <div class="fld"><span class="lbl">Timeline</span><div class="tl" id="cd-tl"></div></div>
+      <details class="cd-det" id="cd-det">
+        <summary class="lbl">Details</summary>
+        <form id="cd-form" class="g2" novalidate>
+          <label class="fld span2"><span class="lbl">Name *</span><input class="in" name="name"></label>
+          <label class="fld"><span class="lbl">Phone</span><input class="in" name="phone" type="tel"></label>
+          <label class="fld"><span class="lbl">Email</span><input class="in" name="email" type="email"></label>
+          <p class="dupe span2" id="cd-dupe" hidden></p>
+          <label class="fld"><span class="lbl">Who</span><span class="sel2"><select class="in" name="category"></select></span></label>
+          <label class="fld"><span class="lbl">Looking to</span><span class="sel2"><select class="in" name="lead_type"></select></span></label>
+          <label class="fld"><span class="lbl">Came from</span><span class="sel2"><select class="in" name="source"></select></span></label>
+          <label class="fld"><span class="lbl">Source details</span><input class="in" name="source_detail" placeholder="Who referred them, which video…"></label>
+          <label class="fld"><span class="lbl">Area</span><input class="in" name="area" placeholder="Goldsboro, Wayne County…"></label>
+          <label class="fld"><span class="lbl">Price range</span><input class="in" name="price_range" placeholder="$250–300K"></label>
+          <label class="fld"><span class="lbl">Timeline</span><span class="sel2"><select class="in" name="timeline"></select></span></label>
+          <label class="fld"><span class="lbl">Property address</span><input class="in" name="address"></label>
+          <label class="fld"><span class="lbl">Base (PCS)</span><input class="in" name="base" placeholder="Seymour Johnson AFB"></label>
+          <label class="fld"><span class="lbl">Report date (PCS)</span><input class="in" name="report_date" type="date"></label>
+          <label class="fld"><span class="lbl">Company</span><input class="in" name="company"></label>
+          <label class="fld"><span class="lbl">Role</span><input class="in" name="role" placeholder="Lender, inspector, attorney…"></label>
+          <label class="fld span2"><span class="lbl">Tags · comma separated</span><input class="in" name="tags" placeholder="VA loan, first-time buyer"></label>
+          <label class="fld span2"><span class="lbl">Background</span><textarea class="in" name="about" rows="3" placeholder="Family, motivation, must-haves. Stays pinned here."></textarea></label>
+          <p class="err span2" id="cd-err" hidden></p>
+          <div class="span2"><button class="btn" type="submit">Save details</button></div>
+        </form>
+      </details>
+      <div><button type="button" class="tlink muted" id="cd-del">Delete contact</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick add -->
+<div id="qa" hidden>
+  <div class="scrim" data-x></div>
+  <form class="drawer" id="qa-form" novalidate role="dialog" aria-modal="true" aria-labelledby="qa-title">
+    <div class="dh"><h2 id="qa-title">Add contact</h2><button type="button" data-x aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="fld"><span class="lbl">Who</span><div class="chips sm" data-pick="category"></div></div>
+      <label class="fld"><span class="lbl">Name *</span><input class="in" name="name" autocomplete="off"></label>
+      <div class="g2">
+        <label class="fld"><span class="lbl">Phone</span><input class="in" name="phone" type="tel" autocomplete="off"></label>
+        <label class="fld"><span class="lbl">Email</span><input class="in" name="email" type="email" autocomplete="off"></label>
+      </div>
+      <p class="dupe" id="qa-dupe" hidden></p>
+      <div class="fld" data-lead-only><span class="lbl">Looking to</span><div class="chips sm" data-pick="lead_type"></div></div>
+      <div class="fld" data-lead-only><span class="lbl">Status</span><div class="chips sm" data-pick="status"></div></div>
+      <div class="fld"><span class="lbl">Came from</span><div class="chips sm" data-pick="source"></div></div>
+      <label class="fld"><span class="lbl">Note</span><textarea class="in" name="note" rows="3" placeholder="What did they say? Area, budget, timing."></textarea></label>
+      <p class="err" id="qa-err" hidden></p>
+    </div>
+    <div class="df"><span></span><div class="r"><button type="button" class="btn ghost" data-x>Cancel</button><button class="btn" type="submit">Save</button></div></div>
+  </form>
+</div>
+
+<!-- Import -->
+<div id="imp" hidden>
+  <div class="scrim" data-x></div>
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="imp-title">
+    <div class="dh"><h2 id="imp-title">Import contacts</h2><button type="button" data-x aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="steps">
+        <p><b>From an iPhone:</b> on a computer, go to icloud.com/contacts, select all (Cmd+A), click the gear or share icon, and choose Export vCard.</p>
+        <p><b>From Google / Android:</b> go to contacts.google.com, click Export, and choose Google CSV.</p>
+        <p>Any spreadsheet saved as CSV with name, phone and email columns works too. People already in the CRM are skipped.</p>
+      </div>
+      <label class="add-ph" for="imp-file" style="aspect-ratio:auto;padding:28px">Choose a .vcf or .csv file</label>
+      <input type="file" id="imp-file" accept=".vcf,.vcard,.csv,text/vcard,text/csv" hidden>
+      <div id="imp-preview" hidden>
+        <p class="imp-sum" id="imp-sum"></p>
+        <div class="fld"><span class="lbl">Import them as</span><div class="chips sm" id="imp-cat"></div></div>
+        <label class="fld"><span class="lbl">Tag (optional)</span><input class="in" id="imp-tag" placeholder="e.g. phone contacts"></label>
+      </div>
+      <p class="err" id="imp-err" hidden></p>
+    </div>
+    <div class="df"><span></span><div class="r"><button type="button" class="btn ghost" data-x>Cancel</button><button class="btn" type="button" id="imp-go" disabled>Import</button></div></div>
+  </div>
+</div>
+
+<style is:inline>
+.main-wide{max-width:1560px}
+.head-btns{display:flex;gap:10px;flex-wrap:wrap}
+.more{text-align:center;padding-top:28px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--gray);border-bottom:1px solid var(--gray);margin-bottom:48px}
+.stats div{padding:20px 0;display:grid;gap:10px}
+.stats div+div{border-left:1px solid var(--gray);padding-left:24px}
+.stats b{font:400 36px/1 var(--serif);color:var(--navy);font-weight:400}
+.tsec{margin-bottom:48px}
+.tsec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:12px}
+.tsec-h h2{margin:0;font:400 22px/1.1 var(--serif);text-transform:uppercase;letter-spacing:.05em}
+.tsec .hint{padding:0 0 12px}
+.crow{display:flex;align-items:center;gap:12px 28px;padding:16px 0;border-bottom:1px solid var(--gray)}
+.crow-main{flex:1;min-width:0;display:grid;gap:5px;text-align:left;border:0;background:none;padding:0;cursor:pointer}
+.crow-main:hover .cn{text-decoration:underline}
+.cname{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cn{font:700 16px/1.3 var(--sans);color:var(--ink)}
+.cmeta{font-size:13px;color:var(--brown)}
+.cnote{font-size:13px;color:var(--taupe)}.cnote strong{color:var(--navy)}
+.crow-act{display:flex;gap:22px;flex-shrink:0}
+.stag{font:700 9px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:5px 7px;background:var(--navy);color:var(--ivory);white-space:nowrap}
+.stag[data-s=contacted]{background:var(--taupe)}.stag[data-s=under_contract]{background:var(--brown)}
+.stag[data-s=active]{background:none;color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.stag[data-s=nurture],.stag[data-s=lost]{background:none;color:var(--taupe);box-shadow:inset 0 0 0 1px var(--gray)}
+.cbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.cbar #c-q{flex:1 1 280px;width:auto}
+.cbar .sel2{flex:0 1 190px}
+.sel2{position:relative;display:block}
+.sel2 select{appearance:none;-webkit-appearance:none;padding-right:34px;cursor:pointer}
+.sel2::after{content:'▼';position:absolute;right:13px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--navy);font-size:9px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(250px,1fr);gap:14px;overflow-x:auto;padding-bottom:16px;scroll-snap-type:x proximity}
+.col{background:var(--paper);border:1px solid #d9d5cf;display:flex;flex-direction:column;min-height:240px;scroll-snap-align:start}
+.col.over{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.col-h{display:flex;justify-content:space-between;padding:16px 14px 14px;border-bottom:1px solid var(--gray);font:700 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--navy)}
+.col-h span+span{color:var(--gray)}
+.col-b{padding:10px;display:grid;gap:8px;align-content:start;flex:1}
+.col-empty{margin:8px 4px;font-size:13px;color:var(--gray)}
+.pcard{background:var(--ivory);border:1px solid #d9d5cf;padding:12px 14px;display:grid;gap:5px;cursor:pointer;text-align:left}
+.pcard:hover,.pcard:focus-visible{border-color:var(--navy)}
+.pcard .cn{font-size:15px}
+.pcard[draggable=true]{cursor:grab}
+.drawer-wide{width:min(660px,100%)}
+.cd-meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--taupe)}
+.cd-acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cd-acts .btn{text-decoration:none}
+.cd-contact{flex-basis:100%;font-size:14px;color:var(--brown);padding-top:4px}
+.fu{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.fu .in{width:auto;padding:9px 12px}
+#cd-fu-note{letter-spacing:.1em;color:var(--navy);margin-left:8px}
+.nudge{outline:2px solid var(--navy);outline-offset:10px}
+.chips.sm button{padding:9px 11px;font-size:10px}
+.tl{border-top:1px solid var(--gray)}
+.tl-i{padding:14px 0;border-bottom:1px solid var(--gray);display:grid;gap:6px}
+.tl-h{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.tl-t{font-size:12px;color:var(--taupe)}
+.tl-del{margin-left:auto;border:0;background:none;padding:0;color:var(--taupe);font:700 10px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.tl-i p{margin:0;white-space:pre-wrap;font-size:14px;line-height:1.5;color:var(--ink)}
+.tl-i[data-k=stage] p,.tl-i[data-k=form] p{color:var(--brown);font-size:13px}
+.cd-det{border-top:1px solid var(--gray)}
+.cd-det summary{cursor:pointer;padding:18px 0;list-style:none;color:var(--navy)}
+.cd-det summary::-webkit-details-marker{display:none}
+.cd-det summary::after{content:' +'}.cd-det[open] summary::after{content:' −'}
+.cd-det form{padding-bottom:8px}
+.dupe{margin:0;padding:12px 14px;background:var(--stone);font-size:14px;color:var(--brown)}
+.dupe button{border:0;background:none;padding:0;color:var(--navy);font:700 14px/1.3 var(--sans);text-decoration:underline;cursor:pointer}
+.steps{display:grid;gap:10px;font-size:14px;color:var(--brown)}.steps p{margin:0}
+.imp-sum{margin:0 0 6px;font:600 15px/1.5 var(--sans)}
+.empty-big{padding:56px 0;text-align:center;display:grid;gap:14px;justify-items:center;color:var(--taupe)}
+.empty-big h2{margin:0;font:400 28px/1.1 var(--serif);text-transform:uppercase;letter-spacing:.05em;color:var(--navy)}
+.empty-big p{margin:0;max-width:420px}
+@media (max-width:760px){
+  .crow{flex-wrap:wrap}.crow-act{width:100%;gap:28px}
+  .stats div+div{padding-left:14px}.stats b{font-size:28px}
+  .cbar .sel2{flex:1 1 140px}
+  .board{grid-auto-columns:82%}
+}
+</style>
+
+<script type="module" is:inline>
+const { sb, $, esc, toast, fail } = window.TBG;
+
+/* ---------- vocab ---------- */
+const STAGES = [['new', 'New'], ['contacted', 'Contacted'], ['active', 'Active'], ['under_contract', 'Under contract'], ['closed', 'Closed'], ['nurture', 'Nurture'], ['lost', 'Lost']];
+const CATS = [['lead', 'Lead'], ['past_client', 'Past client'], ['sphere', 'Sphere'], ['vendor', 'Vendor']];
+const TYPES = [['buyer', 'Buyer'], ['seller', 'Seller'], ['pcs', 'PCS / military'], ['investor', 'Investor'], ['renter', 'Renter'], ['other', 'Other']];
+const SOURCES = [['tiktok', 'TikTok'], ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['youtube', 'YouTube'], ['google', 'Google'], ['website', 'Website'], ['referral', 'Referral'], ['open_house', 'Open house'], ['sign_call', 'Sign call'], ['zillow', 'Zillow'], ['realtor', 'Realtor.com'], ['past_client', 'Past client'], ['sphere', 'Sphere'], ['import', 'Import'], ['other', 'Other']];
+const TIMELINES = ['ASAP', '1–3 months', '3–6 months', '6–12 months', '12+ months', 'Just looking'];
+const KINDS = [['note', 'Note'], ['call', 'Call'], ['text', 'Text'], ['email', 'Email'], ['meeting', 'Meeting']];
+const OUTCOMES = { call: ['Talked', 'Left voicemail', 'No answer'], text: ['Sent a text', 'They replied'], email: ['Sent an email', 'They replied'], meeting: ['Showing', 'Listing appointment', 'Consultation'], note: [] };
+const STAGE = Object.fromEntries(STAGES), CAT = Object.fromEntries(CATS), TYPE = Object.fromEntries(TYPES), SOURCE = Object.fromEntries(SOURCES);
+const KIND = { ...Object.fromEntries(KINDS), form: 'Website form', stage: 'Stage' };
+const pretty = (map, v) => map[v] || (v ? String(v).replace(/_/g, ' ').replace(/^./, (m) => m.toUpperCase()) : '');
+const CRM_VIEWS = ['today', 'contacts', 'pipeline'];
+
+/* ---------- helpers ---------- */
+const ymd = (d) => d.toLocaleDateString('en-CA');
+const today = () => ymd(new Date());
+const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+const dayDiff = (a, b) => Math.round((new Date(b + 'T12:00') - new Date(a + 'T12:00')) / 864e5);
+const fmtDay = (s) => {
+  if (!s) return '';
+  const n = dayDiff(today(), s);
+  if (n === 0) return 'today'; if (n === 1) return 'tomorrow'; if (n === -1) return 'yesterday';
+  const d = new Date(s + 'T12:00');
+  return d.toLocaleDateString('en-US', { weekday: Math.abs(n) < 7 ? 'short' : undefined, month: 'short', day: 'numeric', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined });
+};
+const ago = (iso) => {
+  if (!iso) return '';
+  const m = (Date.now() - new Date(iso)) / 6e4;
+  if (m < 1) return 'just now'; if (m < 60) return Math.floor(m) + 'm ago';
+  if (m < 1440) return Math.floor(m / 60) + 'h ago'; if (m < 10080) return Math.floor(m / 1440) + 'd ago';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+const when = (iso) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const normPhone = (p) => { let d = String(p || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d || null; };
+const normEmail = (e) => String(e || '').trim().toLowerCase() || null;
+const showPhone = (p) => { const d = normPhone(p); return d && d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : p || ''; };
+const telNum = (p) => { const d = normPhone(p); return d ? (d.length === 10 ? '+1' + d : d) : ''; };
+const chips = (list, on, attr = 'data-v') => list.map(([v, l]) => `<button type="button" ${attr}="${esc(v)}" aria-pressed="${v === on}">${esc(l)}</button>`).join('');
+const options = (list, blank) => (blank != null ? `<option value="">${esc(blank)}</option>` : '') + list.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+
+/* ---------- data ---------- */
+let contacts = [], loadedAt = 0, loading = null, session = null, view = null;
+const byId = (id) => contacts.find((c) => c.id === id);
+function loadContacts(force) {
+  if (loading) return loading;
+  if (!force && loadedAt && Date.now() - loadedAt < 30000) return Promise.resolve();
+  loading = (async () => {
+    const all = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from('contacts').select('*').order('created_at', { ascending: false }).range(from, from + 999);
+      if (error) throw error;
+      all.push(...data);
+      if (data.length < 1000) break;
+    }
+    contacts = all; loadedAt = Date.now();
+  })().catch((e) => fail(e, 'Couldn’t load contacts')).finally(() => (loading = null));
+  return loading;
+}
+function keep(c) { const i = contacts.findIndex((x) => x.id === c.id); if (i >= 0) contacts[i] = c; else contacts.unshift(c); }
+function rerender() { if (view === 'today') renderToday(); if (view === 'contacts') renderContacts(); if (view === 'pipeline') renderPipeline(); }
+async function patchContact(id, values, msg) {
+  const { data, error } = await sb.from('contacts').update(values).eq('id', id).select().single();
+  if (error) { fail(error, 'Couldn’t save'); return null; }
+  keep(data); rerender();
+  if (cur?.id === id) { cur = data; drawContact(); }
+  if (msg) toast(msg);
+  return data;
+}
+function findDupes(phone, email, except) {
+  const p = normPhone(phone), e = normEmail(email);
+  return contacts.filter((c) => c.id !== except && ((p && p.length >= 7 && c.phone_norm === p) || (e && c.email_norm === e)));
+}
+const dupeHtml = (list) => 'Already in your CRM: ' + list.slice(0, 3).map((c) => `<button type="button" data-dupe="${c.id}">${esc(c.name)}</button>`).join(', ') + '. Open them instead of adding a duplicate.';
+
+document.addEventListener('tbg:session', (e) => {
+  session = e.detail;
+  if (!session) { contacts = []; loadedAt = 0; view = null; }
+});
+document.addEventListener('tbg:view', async (e) => {
+  const { view: v, arg } = e.detail;
+  if (v === 'c') { await loadContacts(); return openContact(arg); }
+  if (cur) closeContact(false);
+  view = v;
+  if (!CRM_VIEWS.includes(v)) return;
+  if (loadedAt) rerender();
+  await loadContacts(); rerender();
+});
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && session && CRM_VIEWS.includes(view)) { await loadContacts(); rerender(); }
+});
+
+/* ---------- rows ---------- */
+const stageTag = (s) => (s ? `<span class="stag" data-s="${s}">${esc(STAGE[s])}</span>` : '');
+const meta = (c) => [TYPE[c.lead_type], c.category !== 'lead' && CAT[c.category], c.source && pretty(SOURCE, c.source), c.area].filter(Boolean).map(esc).join(' · ');
+function row(c, note = '') {
+  const tel = telNum(c.phone);
+  const acts = tel ? `<a class="tlink" href="tel:${tel}" data-log="call">Call</a><a class="tlink" href="sms:${tel}" data-log="text">Text</a>`
+    : c.email ? `<a class="tlink" href="mailto:${esc(c.email)}" data-log="email">Email</a>` : '';
+  return `<div class="crow" data-id="${c.id}">
+    <button type="button" class="crow-main" data-open>
+      <span class="cname"><span class="cn">${esc(c.name)}</span>${stageTag(c.stage)}</span>
+      <span class="cmeta">${meta(c) || esc(showPhone(c.phone) || c.email || '')}</span>
+      ${note ? `<span class="cnote">${note}</span>` : ''}
+    </button>
+    <div class="crow-act">${acts}</div>
+  </div>`;
+}
+function followNote(c) {
+  const t = today();
+  if (c.next_follow_up && c.next_follow_up < t) { const n = dayDiff(c.next_follow_up, t); return `<strong>Follow-up overdue ${n} day${n === 1 ? '' : 's'}</strong>`; }
+  if (c.next_follow_up) return `Follow up ${esc(fmtDay(c.next_follow_up))}`;
+  return c.last_contacted_at ? `Last contacted ${esc(ago(c.last_contacted_at))}` : `Added ${esc(ago(c.created_at))}`;
+}
+function rowClicks(el) {
+  el.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-id]'); if (!item) return;
+    const log = e.target.closest('[data-log]');
+    if (log) return void setTimeout(() => openContact(item.dataset.id, log.dataset.log), 400); // let the phone app open first
+    if (e.target.closest('[data-open]')) openContact(item.dataset.id);
+  });
+}
+['#t-body', '#c-rows', '#p-board'].forEach((s) => rowClicks($(s)));
+document.addEventListener('click', (e) => {
+  const q = e.target.closest('[data-quick]'); if (q) openQuick(view === 'contacts' && cTab !== 'all' ? cTab : 'lead');
+  const d = e.target.closest('[data-dupe]'); if (d) { closeQuick(); openContact(d.dataset.dupe); }
+});
+
+/* ---------- today ---------- */
+function renderToday() {
+  const t = today();
+  $('#t-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const weekAgo = Date.now() - 7 * 864e5;
+  const count = (f) => contacts.filter(f).length;
+  $('#t-stats').innerHTML = [
+    ['New leads · 7 days', count((c) => c.stage && c.source !== 'import' && new Date(c.created_at) > weekAgo)],
+    ['Working', count((c) => c.stage === 'contacted' || c.stage === 'active')],
+    ['Under contract', count((c) => c.stage === 'under_contract')],
+  ].map(([l, n]) => `<div><span class="lbl">${l}</span><b>${n}</b></div>`).join('');
+
+  if (!contacts.length) {
+    $('#t-body').innerHTML = `<div class="empty-big"><h2>Let's get started</h2><p>Add your first lead, or import your phone contacts so everyone you know is in one place.</p><div class="head-btns"><button class="btn" type="button" data-quick>+ Add lead</button><button class="btn ghost" type="button" onclick="location.hash='contacts';setTimeout(()=>document.getElementById('c-import').click(),50)">Import contacts</button></div></div>`;
+    return;
+  }
+  const seen = new Set();
+  const take = (list) => list.filter((c) => !seen.has(c.id) && seen.add(c.id));
+  const byDue = (a, b) => a.next_follow_up.localeCompare(b.next_follow_up);
+  const fresh = take(contacts.filter((c) => c.stage === 'new' && !c.last_contacted_at).sort((a, b) => a.created_at.localeCompare(b.created_at)));
+  const overdue = take(contacts.filter((c) => c.next_follow_up && c.next_follow_up < t && c.stage !== 'lost').sort(byDue));
+  const due = take(contacts.filter((c) => c.next_follow_up === t && c.stage !== 'lost'));
+  const stale = (c) => c.last_contacted_at || c.created_at;
+  const nostep = take(contacts.filter((c) => ['contacted', 'active', 'under_contract'].includes(c.stage) && !c.next_follow_up).sort((a, b) => stale(a).localeCompare(stale(b))));
+
+  const sec = (title, hint, list, note) => (list.length ? `<section class="tsec"><div class="tsec-h"><h2>${title}</h2><span class="lbl">${list.length}</span></div>${hint ? `<p class="hint">${hint}</p>` : ''}<div class="rows">${list.map((c) => row(c, note(c))).join('')}</div></section>` : '');
+  const html = [
+    sec('New leads', 'Reach out fast. The first agent to respond usually wins the client.', fresh, (c) => (Date.now() - new Date(c.created_at) > 864e5 ? `<strong>No contact yet · came in ${esc(ago(c.created_at))}</strong>` : `Came in ${esc(ago(c.created_at))}`)),
+    sec('Overdue', '', overdue, followNote),
+    sec('Follow up today', '', due, (c) => (c.last_contacted_at ? `Last contacted ${esc(ago(c.last_contacted_at))}` : 'Not contacted yet')),
+    sec('No next step', 'In the pipeline but no follow-up date. Open each one and pick a day.', nostep, (c) => (c.last_contacted_at ? `Last contacted ${esc(ago(c.last_contacted_at))}` : `Added ${esc(ago(c.created_at))}`)),
+  ].join('');
+  $('#t-body').innerHTML = html || `<div class="empty-big"><h2>All caught up</h2><p>No new leads or follow-ups due today. New website leads show up here automatically.</p></div>`;
+}
+
+/* ---------- contacts ---------- */
+const TABS = { all: ['All', () => true], lead: ['Leads', (c) => c.category === 'lead'], past_client: ['Past clients', (c) => c.category === 'past_client'], sphere: ['Sphere', (c) => c.category === 'sphere'], vendor: ['Vendors', (c) => c.category === 'vendor'] };
+const SORTS = [['recent', 'Newest first'], ['name', 'Name A–Z'], ['follow', 'Next follow-up'], ['quiet', 'Longest since contact']];
+let cTab = 'all', cLimit = 100;
+$('#c-stage').innerHTML = options([['open', 'In pipeline (open)'], ...STAGES, ['none', 'Not in pipeline']], 'Any stage');
+$('#c-type').innerHTML = options(TYPES, 'Looking to: any');
+$('#c-sort').innerHTML = options(SORTS);
+function renderContacts() {
+  $('#c-tabs').innerHTML = Object.entries(TABS).map(([k, [l, f]]) => `<button type="button" data-f="${k}" aria-pressed="${k === cTab}">${l}<span>${contacts.filter(f).length}</span></button>`).join('');
+  const q = $('#c-q').value.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  const st = $('#c-stage').value, ty = $('#c-type').value, so = $('#c-sort').value;
+  let list = contacts.filter(TABS[cTab][1]).filter((c) =>
+    (!st || (st === 'open' ? c.stage && c.stage !== 'closed' && c.stage !== 'lost' : st === 'none' ? !c.stage : c.stage === st)) &&
+    (!ty || c.lead_type === ty) &&
+    (!q || [c.name, c.email, c.area, c.company, c.role, c.source_detail, (c.tags || []).join(' ')].join(' ').toLowerCase().includes(q) || (qd.length >= 3 && (c.phone_norm || '').includes(qd))));
+  const far = '9999-12-31';
+  if (so === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+  if (so === 'follow') list.sort((a, b) => (a.next_follow_up || far).localeCompare(b.next_follow_up || far));
+  if (so === 'quiet') list.sort((a, b) => (a.last_contacted_at || '').localeCompare(b.last_contacted_at || ''));
+  $('#c-empty').hidden = list.length > 0;
+  $('#c-rows').innerHTML = list.slice(0, cLimit).map((c) => row(c, followNote(c))).join('');
+  $('#c-more').hidden = list.length <= cLimit;
+  $('#c-more').textContent = `Show more (${list.length - cLimit} left)`;
+}
+$('#c-tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { cTab = b.dataset.f; cLimit = 100; renderContacts(); } });
+['#c-stage', '#c-type', '#c-sort'].forEach((s) => $(s).addEventListener('change', () => { cLimit = 100; renderContacts(); }));
+$('#c-q').addEventListener('input', () => { cLimit = 100; renderContacts(); });
+$('#c-more').addEventListener('click', () => { cLimit += 200; renderContacts(); });
+
+/* ---------- pipeline ---------- */
+const COLS = ['new', 'contacted', 'active', 'under_contract', 'closed', 'nurture'];
+let pType = '';
+function card(c) {
+  const t = today();
+  const fu = c.next_follow_up ? (c.next_follow_up < t ? `<strong>Overdue · ${esc(fmtDay(c.next_follow_up))}</strong>` : `Follow up ${esc(fmtDay(c.next_follow_up))}`) : 'No follow-up set';
+  return `<div class="pcard" draggable="true" data-id="${c.id}" data-open tabindex="0" role="button"><span class="cn">${esc(c.name)}</span><span class="cmeta">${meta(c)}</span><span class="cnote">${fu}</span></div>`;
+}
+function renderPipeline() {
+  $('#p-types').innerHTML = chips([['', 'All'], ...TYPES], pType);
+  const cutoff = Date.now() - 90 * 864e5;
+  const list = contacts.filter((c) => c.stage && (!pType || c.lead_type === pType));
+  const order = (a, b) => (a.next_follow_up || '9999').localeCompare(b.next_follow_up || '9999') || b.created_at.localeCompare(a.created_at);
+  $('#p-board').innerHTML = COLS.map((s) => {
+    const items = list.filter((c) => c.stage === s && (s !== 'closed' || new Date(c.stage_changed_at || c.updated_at) > cutoff)).sort(order);
+    return `<div class="col" data-stage="${s}"><div class="col-h"><span>${STAGE[s]}</span><span>${items.length}</span></div><div class="col-b">${items.map(card).join('') || '<p class="col-empty">None</p>'}</div></div>`;
+  }).join('');
+  const lost = list.filter((c) => c.stage === 'lost').length;
+  $('#p-lost').innerHTML = lost ? `${lost} marked lost. <button type="button" class="tlink muted" id="p-lost-go">View them</button>` : '';
+}
+$('#p-types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { pType = b.dataset.v; renderPipeline(); } });
+$('#p-lost').addEventListener('click', (e) => {
+  if (!e.target.closest('#p-lost-go')) return;
+  cTab = 'all'; $('#c-stage').value = 'lost'; location.hash = 'contacts';
+});
+const board = $('#p-board');
+board.addEventListener('keydown', (e) => { const c = e.target.closest('.pcard'); if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openContact(c.dataset.id); } });
+board.addEventListener('dragstart', (e) => { const c = e.target.closest('.pcard'); if (c) { e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; } });
+board.addEventListener('dragover', (e) => { const col = e.target.closest('.col'); if (col) { e.preventDefault(); col.classList.add('over'); } });
+board.addEventListener('dragleave', (e) => { const col = e.target.closest('.col'); if (col && !col.contains(e.relatedTarget)) col.classList.remove('over'); });
+board.addEventListener('drop', (e) => {
+  const col = e.target.closest('.col'); if (!col) return;
+  e.preventDefault(); col.classList.remove('over');
+  const c = byId(e.dataTransfer.getData('text/plain'));
+  if (c && c.stage !== col.dataset.stage) setStage(c, col.dataset.stage);
+});
+function setStage(c, s) {
+  const msg = s === 'closed' ? (c.category === 'lead' ? 'Closed. Moved to past clients.' : 'Marked closed') : s ? `Moved to ${STAGE[s]}` : 'Removed from pipeline';
+  return patchContact(c.id, { stage: s || null }, msg).then((d) => { if (d && cur?.id === d.id) loadTimeline(); });
+}
+
+/* ---------- contact drawer ---------- */
+let cur = null, acts = [], logKind = 'note', delArm = false, delAct = null;
+const FU_QUICK = [['0', 'Today'], ['1', 'Tomorrow'], ['3', '3 days'], ['7', '1 week'], ['14', '2 weeks'], ['30', '1 month'], ['', 'Clear']];
+const det = $('#cd-form');
+det.elements.category.innerHTML = options(CATS);
+det.elements.lead_type.innerHTML = options(TYPES, '—');
+
+async function openContact(id, kind) {
+  let c = byId(id);
+  if (!c) {
+    const { data } = await sb.from('contacts').select('*').eq('id', id).maybeSingle();
+    if (!data) { toast('Contact not found'); return history.replaceState(null, '', '#' + (view || 'today')); }
+    keep(data); c = data;
+  }
+  cur = c; delArm = false; delAct = null; acts = [];
+  logKind = kind || 'note';
+  $('#cd-log').reset();
+  $('#cd-fu-wrap').classList.remove('nudge');
+  $('#cd-det').open = false;
+  drawContact(); fillDetails();
+  $('#cd').hidden = false; document.body.style.overflow = 'hidden';
+  history.replaceState(null, '', '#c/' + id);
+  loadTimeline();
+  if (kind) setTimeout(() => $('#cd-log textarea').focus({ preventScroll: true }), 60);
+}
+function closeContact(restoreHash = true) {
+  $('#cd').hidden = true; cur = null; document.body.style.overflow = '';
+  if (restoreHash) history.replaceState(null, '', '#' + (view || 'today'));
+}
+function drawContact() {
+  const c = cur, t = today();
+  $('#cd-name').textContent = c.name;
+  $('#cd-meta').innerHTML = [CAT[c.category], TYPE[c.lead_type], c.source && 'From ' + pretty(SOURCE, c.source) + (c.source_detail ? ` (${c.source_detail})` : ''), 'Added ' + ago(c.created_at), c.last_contacted_at && 'Last contacted ' + ago(c.last_contacted_at)]
+    .filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('');
+  const tel = telNum(c.phone);
+  $('#cd-acts').innerHTML = [
+    tel && `<a class="btn" href="tel:${tel}" data-k="call">Call</a>`,
+    tel && `<a class="btn ghost" href="sms:${tel}" data-k="text">Text</a>`,
+    c.email && `<a class="btn ghost" href="mailto:${esc(c.email)}" data-k="email">Email</a>`,
+  ].filter(Boolean).join('') + `<div class="cd-contact">${[showPhone(c.phone), c.email].filter(Boolean).map(esc).join(' · ') || 'No phone or email yet. Add them under Details.'}</div>`;
+  $('#cd-stage').innerHTML = chips([...STAGES, ['', 'Not in pipeline']], c.stage || '');
+  $('#cd-fu').value = c.next_follow_up || '';
+  $('#cd-fu-q').innerHTML = chips(FU_QUICK, null);
+  $('#cd-fu-note').textContent = c.next_follow_up ? (c.next_follow_up < t ? '· overdue' : '· ' + fmtDay(c.next_follow_up)) : '';
+  drawKinds();
+}
+function drawKinds() {
+  $('#cd-kind').innerHTML = chips(KINDS, logKind);
+  $('#cd-outcome').innerHTML = OUTCOMES[logKind].map((o) => `<button type="button" data-o="${esc(o)}" aria-pressed="false">${esc(o)}</button>`).join('');
+  $('#cd-outcome').hidden = !OUTCOMES[logKind].length;
+}
+async function loadTimeline() {
+  const id = cur?.id; if (!id) return;
+  if (!acts.length) $('#cd-tl').innerHTML = '<p class="hint">Loading…</p>';
+  const { data, error } = await sb.from('activities').select('*').eq('contact_id', id).order('created_at', { ascending: false }).limit(300);
+  if (cur?.id !== id) return;
+  if (error) return fail(error, 'Couldn’t load timeline');
+  acts = data; drawTimeline();
+}
+const stageName = (s) => STAGE[s] || 'Not in pipeline';
+function drawTimeline() {
+  $('#cd-tl').innerHTML = acts.length ? acts.map((a) => `
+    <div class="tl-i" data-aid="${a.id}" data-k="${a.kind}">
+      <div class="tl-h"><span class="lbl">${esc(KIND[a.kind] || a.kind)}</span><span class="tl-t">${esc(when(a.created_at))}${a.created_by && a.created_by === session?.user.id ? ' · You' : ''}</span>
+        ${KIND[a.kind] && a.kind !== 'form' && a.kind !== 'stage' ? `<button type="button" class="tl-del" data-del>${delAct === a.id ? 'Confirm delete' : 'Delete'}</button>` : ''}</div>
+      ${a.kind === 'stage' ? `<p>${esc(stageName(a.meta?.from))} → ${esc(stageName(a.meta?.to))}</p>` : a.body ? `<p>${esc(a.body)}</p>` : ''}
+    </div>`).join('') : '<p class="hint">Nothing here yet. Log your first call, text or note above.</p>';
+}
+
+document.querySelectorAll('#cd [data-x]').forEach((el) => el.addEventListener('click', () => closeContact()));
+$('#cd-acts').addEventListener('click', (e) => { const a = e.target.closest('[data-k]'); if (a) { logKind = a.dataset.k; drawKinds(); } });
+$('#cd-stage').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && (b.dataset.v || null) !== cur.stage) setStage(cur, b.dataset.v); });
+$('#cd-fu').addEventListener('change', (e) => setFollowUp(e.target.value || null));
+$('#cd-fu-q').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFollowUp(b.dataset.v === '' ? null : addDays(Number(b.dataset.v))); });
+function setFollowUp(d) {
+  $('#cd-fu-wrap').classList.remove('nudge');
+  return patchContact(cur.id, { next_follow_up: d }, d ? `Follow up ${fmtDay(d)}` : 'Follow-up cleared');
+}
+$('#cd-kind').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { logKind = b.dataset.v; drawKinds(); } });
+$('#cd-outcome').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const ta = $('#cd-log textarea'), o = b.dataset.o + '. ';
+  ta.value = ta.value.startsWith(o) ? ta.value : o + ta.value.replace(new RegExp('^(' + OUTCOMES[logKind].join('|') + ')\\. '), '');
+  ta.focus();
+});
+$('#cd-log').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target, body = f.body.value.trim(), btn = f.querySelector('.btn'), id = cur.id;
+  if (!body && logKind === 'note') return toast('Write a note first');
+  btn.disabled = true;
+  const { error } = await sb.from('activities').insert({ contact_id: id, kind: logKind, body: body || null });
+  btn.disabled = false;
+  if (error) return fail(error, 'Couldn’t save');
+  f.reset();
+  // A logged call/text/email/meeting completes a due follow-up, so clear it and ask for the next one.
+  const touch = logKind !== 'note';
+  const fuDone = touch && cur.next_follow_up && cur.next_follow_up <= today();
+  const { data } = fuDone
+    ? await sb.from('contacts').update({ next_follow_up: null }).eq('id', id).select().single()
+    : await sb.from('contacts').select('*').eq('id', id).single();
+  if (data) { keep(data); if (cur?.id === id) { cur = data; drawContact(); } rerender(); }
+  logKind = 'note'; drawKinds();
+  await loadTimeline();
+  const needNext = touch && data && !data.next_follow_up && data.stage && data.stage !== 'closed' && data.stage !== 'lost';
+  if (needNext) { $('#cd-fu-wrap').classList.add('nudge'); $('#cd-fu-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  toast(needNext ? 'Logged. When should you follow up next?' : 'Logged');
+});
+$('#cd-tl').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  const id = b.closest('.tl-i').dataset.aid;
+  if (delAct !== id) { delAct = id; return drawTimeline(); }
+  const { error } = await sb.from('activities').delete().eq('id', id);
+  if (error) return fail(error, 'Couldn’t delete');
+  delAct = null; acts = acts.filter((a) => a.id !== id); drawTimeline(); toast('Removed from timeline');
+});
+
+const DFIELDS = ['name', 'phone', 'email', 'category', 'lead_type', 'source', 'source_detail', 'area', 'price_range', 'timeline', 'address', 'base', 'report_date', 'company', 'role', 'tags', 'about'];
+function fillDetails() {
+  const src = cur.source && !SOURCE[cur.source] ? [[cur.source, pretty(SOURCE, cur.source)]] : [];
+  det.elements.source.innerHTML = options([...SOURCES, ...src], '—');
+  det.elements.timeline.innerHTML = options([...TIMELINES, ...(cur.timeline && !TIMELINES.includes(cur.timeline) ? [cur.timeline] : [])].map((t) => [t, t]), '—');
+  DFIELDS.forEach((k) => (det.elements[k].value = k === 'tags' ? (cur.tags || []).join(', ') : cur[k] ?? ''));
+  $('#cd-dupe').hidden = true; $('#cd-err').hidden = true;
+}
+function checkDetDupes() {
+  const d = findDupes(det.elements.phone.value, det.elements.email.value, cur?.id);
+  $('#cd-dupe').hidden = !d.length;
+  if (d.length) $('#cd-dupe').innerHTML = 'Same phone or email as: ' + d.slice(0, 3).map((c) => `<button type="button" data-dupe="${c.id}">${esc(c.name)}</button>`).join(', ');
+}
+det.elements.phone.addEventListener('change', checkDetDupes);
+det.elements.email.addEventListener('change', checkDetDupes);
+det.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const v = Object.fromEntries(DFIELDS.map((k) => [k, det.elements[k].value.trim()]));
+  if (!v.name) { $('#cd-err').textContent = 'Name is required.'; $('#cd-err').hidden = false; return; }
+  const values = Object.fromEntries(DFIELDS.map((k) => [k, v[k] || null]));
+  values.category = v.category || 'lead';
+  values.tags = [...new Set(v.tags.split(',').map((t) => t.trim()).filter(Boolean))];
+  if (values.category === 'lead' && !cur.stage) values.stage = 'new';
+  $('#cd-err').hidden = true;
+  const d = await patchContact(cur.id, values, 'Details saved');
+  if (d) { fillDetails(); if (values.stage) loadTimeline(); }
+});
+$('#cd-del').addEventListener('click', async () => {
+  if (!delArm) { delArm = true; $('#cd-del').textContent = 'Click again to delete for good'; return; }
+  const id = cur.id;
+  const { error } = await sb.from('contacts').delete().eq('id', id);
+  if (error) return fail(error, 'Couldn’t delete');
+  contacts = contacts.filter((c) => c.id !== id);
+  $('#cd-del').textContent = 'Delete contact';
+  closeContact(); rerender(); toast('Contact deleted');
+});
+
+/* ---------- quick add ---------- */
+const qaf = $('#qa-form');
+const QA = {
+  category: CATS,
+  lead_type: TYPES,
+  status: [['new', 'Need to reach out'], ['contacted', 'Already talking']],
+  source: SOURCES.filter(([k]) => ['tiktok', 'instagram', 'facebook', 'referral', 'website', 'open_house', 'sign_call', 'past_client', 'sphere', 'other'].includes(k)),
+};
+let qa = {};
+function openQuick(category = 'lead') {
+  qa = { category, lead_type: null, status: 'new', source: category === 'lead' ? 'tiktok' : null };
+  qaf.reset(); $('#qa-err').hidden = true; $('#qa-dupe').hidden = true;
+  drawQuick();
+  $('#qa').hidden = false; document.body.style.overflow = 'hidden';
+  setTimeout(() => qaf.elements.name.focus(), 60);
+}
+function closeQuick() { $('#qa').hidden = true; if (!cur) document.body.style.overflow = ''; }
+function drawQuick() {
+  qaf.querySelectorAll('[data-pick]').forEach((el) => (el.innerHTML = chips(QA[el.dataset.pick], qa[el.dataset.pick])));
+  qaf.querySelectorAll('[data-lead-only]').forEach((el) => (el.hidden = qa.category !== 'lead'));
+  $('#qa-title').textContent = qa.category === 'lead' ? 'Add lead' : 'Add contact';
+}
+qaf.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pick] button'); if (!b) return;
+  const k = b.closest('[data-pick]').dataset.pick, v = b.dataset.v;
+  qa[k] = qa[k] === v && (k === 'lead_type' || k === 'source') ? null : v;
+  drawQuick();
+});
+document.querySelectorAll('#qa [data-x]').forEach((el) => el.addEventListener('click', closeQuick));
+let dupeT;
+qaf.addEventListener('input', (e) => {
+  if (e.target.name !== 'phone' && e.target.name !== 'email') return;
+  clearTimeout(dupeT);
+  dupeT = setTimeout(() => {
+    const d = findDupes(qaf.elements.phone.value, qaf.elements.email.value);
+    $('#qa-dupe').hidden = !d.length; if (d.length) $('#qa-dupe').innerHTML = dupeHtml(d);
+  }, 250);
+});
+qaf.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = qaf.elements, name = f.name.value.trim(), note = f.note.value.trim(), err = $('#qa-err');
+  if (!name) { err.textContent = 'Add a name.'; err.hidden = false; return; }
+  if (f.email.value.trim() && !/^\S+@\S+\.\S+$/.test(f.email.value.trim())) { err.textContent = 'That email doesn’t look right.'; err.hidden = false; return; }
+  const lead = qa.category === 'lead', talking = lead && qa.status === 'contacted';
+  const row = {
+    name, phone: f.phone.value.trim() || null, email: f.email.value.trim() || null,
+    category: qa.category, lead_type: lead ? qa.lead_type : null, source: qa.source,
+    stage: lead ? qa.status : null,
+    next_follow_up: lead ? (talking ? addDays(2) : today()) : null,
+    last_contacted_at: talking ? new Date().toISOString() : null,
+  };
+  const btn = qaf.querySelector('[type=submit]'); btn.disabled = true;
+  const { data, error } = await sb.from('contacts').insert(row).select().single();
+  if (!error && note) await sb.from('activities').insert({ contact_id: data.id, kind: 'note', body: note });
+  btn.disabled = false;
+  if (error) return fail(error, 'Couldn’t save');
+  keep(data); rerender(); closeQuick();
+  toast(`${name} added`);
+});
+
+/* ---------- import ---------- */
+let imp = null, impCat = 'sphere';
+$('#c-import').addEventListener('click', () => {
+  imp = null; $('#imp-preview').hidden = true; $('#imp-err').hidden = true; $('#imp-go').disabled = true; $('#imp-tag').value = '';
+  $('#imp').hidden = false; document.body.style.overflow = 'hidden';
+});
+const closeImport = () => { $('#imp').hidden = true; document.body.style.overflow = ''; };
+document.querySelectorAll('#imp [data-x]').forEach((el) => el.addEventListener('click', closeImport));
+$('#imp-cat').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { impCat = b.dataset.v; drawImport(); } });
+
+function parseVcf(text) {
+  const lines = text.replace(/\r\n?/g, '\n').replace(/\n[ \t]/g, '').split('\n');
+  const val = (s) => s.replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1').trim();
+  const qp = (s) => { try { return decodeURIComponent(s.replace(/=([0-9A-F]{2})/gi, '%$1')); } catch { return s; } };
+  const out = []; let c = null;
+  for (const raw of lines) {
+    const i = raw.indexOf(':'); if (i < 0) continue;
+    const [prop0, ...params] = raw.slice(0, i).split(';');
+    const prop = prop0.split('.').pop().toUpperCase(), p = params.join(';').toUpperCase();
+    let v = raw.slice(i + 1);
+    if (p.includes('QUOTED-PRINTABLE')) v = qp(v);
+    if (prop === 'BEGIN') { c = { phones: [], emails: [] }; continue; }
+    if (!c) continue;
+    if (prop === 'END') { out.push(c); c = null; }
+    else if (prop === 'FN') c.fn = val(v);
+    else if (prop === 'N') { const [last, first, mid] = v.split(';').map(val); c.n = [first, mid, last].filter(Boolean).join(' '); }
+    else if (prop === 'TEL') c.phones[/CELL|IPHONE|MOBILE/.test(p) ? 'unshift' : 'push'](val(v).replace(/^tel:/i, ''));
+    else if (prop === 'EMAIL') c.emails.push(val(v));
+    else if (prop === 'ORG') c.org = val(v.split(';')[0]);
+  }
+  return out.map((c) => ({ name: c.fn || c.n || '', phone: c.phones[0] || '', email: c.emails[0] || '', company: c.org || '' }));
+}
+function parseCsv(text) {
+  const rows = []; let row = [], f = '', q = false;
+  text = text.replace(/^﻿/, '');
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(f); f = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += ch;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  const data = rows.filter((r) => r.some((x) => x.trim()));
+  if (data.length < 2) return [];
+  const h = data[0].map((x) => x.trim().toLowerCase());
+  const find = (re) => h.findIndex((x) => re.test(x) && !/label|type/.test(x));
+  const iName = find(/^(name|full name|display name|contact name)$/), iFirst = find(/^(first name|given name|first)$/), iMid = find(/^(middle name|additional name)$/), iLast = find(/^(last name|family name|surname|last)$/);
+  const iPhone = find(/phone|mobile|cell/), iEmail = find(/e-?mail/), iOrg = find(/^(company|organization|organization name|organization 1 - name)$/);
+  const get = (r, i) => (i >= 0 ? (r[i] || '').split(' ::: ')[0].trim() : '');
+  return data.slice(1).map((r) => ({ name: get(r, iName) || [get(r, iFirst), get(r, iMid), get(r, iLast)].filter(Boolean).join(' '), phone: get(r, iPhone), email: get(r, iEmail), company: get(r, iOrg) }));
+}
+$('#imp-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  const text = await file.text();
+  const raw = /BEGIN:VCARD/i.test(text) ? parseVcf(text) : parseCsv(text);
+  const phones = new Set(contacts.map((c) => c.phone_norm).filter(Boolean)), emails = new Set(contacts.map((c) => c.email_norm).filter(Boolean));
+  let dupes = 0, skipped = 0; const rows = [];
+  for (const r of raw) {
+    const p = normPhone(r.phone), m = normEmail(r.email);
+    if (!p && !m) { skipped++; continue; }
+    if ((p && phones.has(p)) || (m && emails.has(m))) { dupes++; continue; }
+    if (p) phones.add(p); if (m) emails.add(m);
+    rows.push({ name: (r.name || r.email || showPhone(r.phone)).slice(0, 120), phone: r.phone || null, email: r.email || null, company: r.company || null });
+  }
+  imp = { rows, dupes, skipped, file: file.name };
+  if (!raw.length) { $('#imp-err').textContent = 'No contacts found in that file. Use a .vcf export or a CSV with a header row.'; $('#imp-err').hidden = false; return; }
+  $('#imp-err').hidden = true;
+  drawImport();
+});
+function drawImport() {
+  if (!imp) return;
+  $('#imp-preview').hidden = false;
+  $('#imp-sum').textContent = `${imp.rows.length} new contact${imp.rows.length === 1 ? '' : 's'} ready` + (imp.dupes ? ` · ${imp.dupes} already in your CRM` : '') + (imp.skipped ? ` · ${imp.skipped} skipped (no phone or email)` : '') + '.';
+  $('#imp-cat').innerHTML = chips(CATS, impCat);
+  $('#imp-go').disabled = !imp.rows.length;
+  $('#imp-go').textContent = imp.rows.length ? `Import ${imp.rows.length}` : 'Import';
+}
+$('#imp-go').addEventListener('click', async () => {
+  const btn = $('#imp-go'), tag = $('#imp-tag').value.trim();
+  const rows = imp.rows.map((r) => ({ ...r, category: impCat, stage: impCat === 'lead' ? 'nurture' : null, source: 'import', source_detail: imp.file.slice(0, 200), tags: tag ? [tag] : [] }));
+  btn.disabled = true;
+  let done = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    btn.textContent = `Importing ${done}/${rows.length}…`;
+    const { error } = await sb.from('contacts').insert(rows.slice(i, i + 500));
+    if (error) { fail(error, `Import stopped after ${done}`); break; }
+    done += Math.min(500, rows.length - i);
+  }
+  await loadContacts(true); rerender(); closeImport();
+  if (done) toast(`Imported ${done} contacts`);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('#qa').hidden) closeQuick(); else if (!$('#imp').hidden) closeImport(); else if (cur) closeContact();
+});
+</script>
