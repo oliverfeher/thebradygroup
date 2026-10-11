@@ -7,7 +7,7 @@
 <main class="main" id="v-today" hidden>
   <div class="head">
     <div><div class="lbl" id="t-date" style="margin-bottom:14px"></div><h1>Today</h1></div>
-    <button class="btn" type="button" data-quick>+ Add lead</button>
+    <button class="btn hide-m" type="button" data-quick>+ Add lead</button>
   </div>
   <div class="stats" id="t-stats"></div>
   <div id="t-body"></div>
@@ -15,11 +15,11 @@
 
 <main class="main" id="v-contacts" hidden>
   <div class="head">
-    <div><div class="lbl" style="margin-bottom:14px">Everyone</div><h1>Contacts</h1></div>
-    <div class="head-btns"><button class="btn ghost" type="button" id="c-import">Import</button><button class="btn" type="button" data-quick>+ Add contact</button></div>
+    <div><div class="lbl eyebrow-opt" style="margin-bottom:14px">Everyone</div><h1>Contacts</h1></div>
+    <div class="head-btns"><button class="btn ghost" type="button" id="c-import">Import</button><button class="btn hide-m" type="button" data-quick>+ Add contact</button></div>
   </div>
-  <div class="cbar">
-    <input class="in" id="c-q" type="search" placeholder="Search name, phone, email, tag" autocomplete="off" aria-label="Search contacts">
+  <div class="cbar" id="cbar">
+    <div class="cbar-q"><input class="in" id="c-q" type="search" placeholder="Search name, phone, email, tag" autocomplete="off" aria-label="Search contacts"><button class="filt-t" type="button" id="c-filt" aria-expanded="false">Filter</button></div>
     <div class="sel2"><select class="in" id="c-stage" aria-label="Stage"></select></div>
     <div class="sel2"><select class="in" id="c-type" aria-label="Looking to"></select></div>
     <div class="sel2"><select class="in" id="c-sort" aria-label="Sort"></select></div>
@@ -32,13 +32,16 @@
 
 <main class="main main-wide" id="v-pipeline" hidden>
   <div class="head">
-    <div><div class="lbl" style="margin-bottom:14px">Deals in motion</div><h1>Pipeline</h1></div>
-    <div class="chips" id="p-types"></div>
+    <div><div class="lbl eyebrow-opt" style="margin-bottom:14px">Deals in motion</div><h1>Pipeline</h1></div>
+    <div class="chips hide-m" id="p-types"></div>
   </div>
-  <div class="hint">Drag a card to another column to change its stage, or tap it to open. Closed shows the last 90 days.</div>
+  <div class="tabs p-stages" id="p-stages" role="group" aria-label="Stage"></div>
+  <div class="hint hide-m">Drag a card to another column to change its stage, or tap it to open. Closed shows the last 90 days.</div>
   <div class="board" id="p-board"></div>
   <div class="hint" id="p-lost"></div>
 </main>
+
+<button class="fab" type="button" data-quick aria-label="Add lead">+</button>
 
 <!-- Contact drawer -->
 <div id="cd" hidden>
@@ -48,13 +51,16 @@
     <div class="db">
       <div class="cd-meta" id="cd-meta"></div>
       <div class="cd-acts" id="cd-acts"></div>
-      <div class="fld"><span class="lbl">Stage</span><div class="chips sm" id="cd-stage"></div></div>
-      <div class="fld" id="cd-fu-wrap"><span class="lbl">Next follow-up <span id="cd-fu-note"></span></span>
-        <div class="fu"><input class="in" type="date" id="cd-fu" aria-label="Next follow-up date"><div class="chips sm" id="cd-fu-q"></div></div>
+      <div class="cd-grid">
+        <label class="fld"><span class="lbl">Stage</span><span class="sel stage-sel"><select id="cd-stage" aria-label="Stage"></select></span></label>
+        <div class="fld" id="cd-fu-wrap"><span class="lbl">Next follow-up <span id="cd-fu-note"></span> <button type="button" class="fu-clear" id="cd-fu-clear" hidden>Clear</button></span>
+          <input class="in fu-in" type="date" id="cd-fu" aria-label="Next follow-up date">
+          <div class="chips sm fu-q" id="cd-fu-q"></div>
+        </div>
       </div>
       <form class="fld" id="cd-log">
         <span class="lbl">Log activity</span>
-        <div class="chips sm" id="cd-kind"></div>
+        <div class="chips sm seg" id="cd-kind"></div>
         <div class="chips sm" id="cd-outcome"></div>
         <textarea class="in" name="body" rows="3" placeholder="What happened? What's next?"></textarea>
         <div><button class="btn" type="submit">Save to timeline</button></div>
@@ -96,7 +102,6 @@
   <form class="drawer" id="qa-form" novalidate role="dialog" aria-modal="true" aria-labelledby="qa-title">
     <div class="dh"><h2 id="qa-title">Add contact</h2><button type="button" data-x aria-label="Close">×</button></div>
     <div class="db">
-      <div class="fld"><span class="lbl">Who</span><div class="chips sm" data-pick="category"></div></div>
       <label class="fld"><span class="lbl">Name *</span><input class="in" name="name" autocomplete="off"></label>
       <div class="g2">
         <label class="fld"><span class="lbl">Phone</span><input class="in" name="phone" type="tel" autocomplete="off"></label>
@@ -104,9 +109,10 @@
       </div>
       <p class="dupe" id="qa-dupe" hidden></p>
       <div class="fld" data-lead-only><span class="lbl">Looking to</span><div class="chips sm" data-pick="lead_type"></div></div>
-      <div class="fld" data-lead-only><span class="lbl">Status</span><div class="chips sm" data-pick="status"></div></div>
+      <div class="fld" data-lead-only><span class="lbl">Status</span><div class="chips sm seg" data-pick="status"></div></div>
       <div class="fld"><span class="lbl">Came from</span><div class="chips sm" data-pick="source"></div></div>
       <label class="fld"><span class="lbl">Note</span><textarea class="in" name="note" rows="3" placeholder="What did they say? Area, budget, timing."></textarea></label>
+      <div class="fld"><span class="lbl">Contact type</span><div class="chips sm" data-pick="category"></div></div>
       <p class="err" id="qa-err" hidden></p>
     </div>
     <div class="df"><span></span><div class="r"><button type="button" class="btn ghost" data-x>Cancel</button><button class="btn" type="submit">Save</button></div></div>
@@ -206,11 +212,68 @@
 .empty-big{padding:56px 0;text-align:center;display:grid;gap:14px;justify-items:center;color:var(--taupe)}
 .empty-big h2{margin:0;font:400 28px/1.1 var(--serif);text-transform:uppercase;letter-spacing:.05em;color:var(--navy)}
 .empty-big p{margin:0;max-width:420px}
+/* row actions */
+.ab{display:inline-grid;place-items:center;min-width:64px;height:40px;padding:0 12px;border:1px solid var(--navy);color:var(--navy);font:700 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;text-decoration:none!important}
+.ab.fill{background:var(--navy);color:var(--ivory)}
+.ab:hover{background:var(--navy);color:var(--ivory)}
+.crow-act{gap:8px}
+.cmeta,.cnote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* contacts search + filter toggle */
+.cbar-q{flex:1 1 280px;display:flex;gap:10px}.cbar-q .in{flex:1;width:auto}
+.filt-t{display:none;border:1px solid var(--gray);background:var(--paper);color:var(--navy);padding:0 14px;font:700 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.filt-t[aria-expanded=true]{background:var(--navy);border-color:var(--navy);color:var(--ivory)}
+/* pipeline stage tabs (phones only) */
+.p-stages{display:none}
+/* contact drawer */
+.cd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.stage-sel{display:block}.stage-sel select{width:100%;padding:13px 34px 13px 14px}
+.stage-sel select[data-s=contacted]{background:var(--taupe)}.stage-sel select[data-s=under_contract]{background:var(--brown)}
+.stage-sel select[data-s=active]{background:var(--paper);color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.stage-sel select[data-s=nurture],.stage-sel select[data-s=lost],.stage-sel select[data-s=""]{background:var(--paper);color:var(--brown);box-shadow:inset 0 0 0 1px var(--gray)}
+.stage-sel:has(select[data-s=active])::after,.stage-sel:has(select[data-s=nurture])::after,.stage-sel:has(select[data-s=lost])::after,.stage-sel:has(select[data-s=""])::after{color:var(--navy)}
+.fu-in{width:100%}
+.fu-q{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.fu-q button{padding-inline:4px!important}
+.fu-clear{border:0;background:none;padding:0;margin-left:8px;color:var(--taupe);font:inherit;letter-spacing:inherit;text-decoration:underline;cursor:pointer}
+.cd-btns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;width:100%}
+.cd-btns .btn{text-align:center;padding-inline:8px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0}
+.seg button{margin-left:-1px;padding-inline:4px!important}
+.fab{display:none}
 @media (max-width:760px){
-  .crow{flex-wrap:wrap}.crow-act{width:100%;gap:28px}
-  .stats div+div{padding-left:14px}.stats b{font-size:28px}
-  .cbar .sel2{flex:1 1 140px}
-  .board{grid-auto-columns:82%}
+  .hide-m{display:none!important}
+  .eyebrow-opt{display:none}
+  .head{flex-wrap:nowrap;align-items:center;margin-bottom:20px}
+  .head h1{font-size:30px}
+  #v-today .head{align-items:flex-end}
+  #t-date{margin-bottom:8px!important}
+  .head-btns .btn{padding:11px 14px}
+  .stats{margin-bottom:28px}.stats div{padding:12px 0;gap:6px}.stats div+div{padding-left:12px}.stats b{font-size:26px}
+  .stats .lbl{font-size:9px;letter-spacing:.14em}
+  .tsec{margin-bottom:32px}.tsec-h{padding-bottom:6px}.tsec-h h2{font-size:18px}
+  .tsec .hint{display:none}
+  .tsec .rows{border-top:1px solid var(--gray)}
+  .crow{padding:12px 0;gap:10px}
+  .cn{font-size:15px}
+  .crow-main{gap:3px}
+  .ab{min-width:54px;height:44px;padding:0 8px;font-size:10px;letter-spacing:.1em}
+  .cbar{gap:8px;margin-bottom:16px}
+  .filt-t{display:block}
+  .cbar .sel2{display:none;flex:1 1 100%}
+  .cbar.open .sel2{display:block}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:22px}.tabs::-webkit-scrollbar{display:none}
+  .scroll-m{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:100%}.scroll-m::-webkit-scrollbar{display:none}
+  #v-pipeline .head{flex-wrap:wrap}
+  .p-stages{display:flex;margin-bottom:16px}
+  .board{display:block;overflow:visible}
+  .board .col{display:none;background:none;border:0;min-height:0}
+  .board .col.on{display:block}
+  .board .col-h{display:none}
+  .board .col-b{padding:0;gap:8px}
+  .cd-grid{grid-template-columns:1fr;gap:18px}
+  .fu-q{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .chips.sm button{padding:11px 12px}
+  .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:8;width:56px;height:56px;border:0;background:var(--navy);color:var(--ivory);font:400 32px/1 var(--serif);cursor:pointer;box-shadow:0 6px 18px rgba(16,39,86,.3)}
+  body:not([data-view=today]):not([data-view=contacts]) .fab{display:none}
 }
 </style>
 
@@ -313,8 +376,8 @@ const stageTag = (s) => (s ? `<span class="stag" data-s="${s}">${esc(STAGE[s])}<
 const meta = (c) => [TYPE[c.lead_type], c.category !== 'lead' && CAT[c.category], c.source && pretty(SOURCE, c.source), c.area].filter(Boolean).map(esc).join(' · ');
 function row(c, note = '') {
   const tel = telNum(c.phone);
-  const acts = tel ? `<a class="tlink" href="tel:${tel}" data-log="call">Call</a><a class="tlink" href="sms:${tel}" data-log="text">Text</a>`
-    : c.email ? `<a class="tlink" href="mailto:${esc(c.email)}" data-log="email">Email</a>` : '';
+  const acts = tel ? `<a class="ab fill" href="tel:${tel}" data-log="call">Call</a><a class="ab" href="sms:${tel}" data-log="text">Text</a>`
+    : c.email ? `<a class="ab" href="mailto:${esc(c.email)}" data-log="email">Email</a>` : '';
   return `<div class="crow" data-id="${c.id}">
     <button type="button" class="crow-main" data-open>
       <span class="cname"><span class="cn">${esc(c.name)}</span>${stageTag(c.stage)}</span>
@@ -351,7 +414,7 @@ function renderToday() {
   const weekAgo = Date.now() - 7 * 864e5;
   const count = (f) => contacts.filter(f).length;
   $('#t-stats').innerHTML = [
-    ['New leads · 7 days', count((c) => c.stage && c.source !== 'import' && new Date(c.created_at) > weekAgo)],
+    ['New this week', count((c) => c.stage && c.source !== 'import' && new Date(c.created_at) > weekAgo)],
     ['Working', count((c) => c.stage === 'contacted' || c.stage === 'active')],
     ['Under contract', count((c) => c.stage === 'under_contract')],
   ].map(([l, n]) => `<div><span class="lbl">${l}</span><b>${n}</b></div>`).join('');
@@ -390,6 +453,7 @@ function renderContacts() {
   $('#c-tabs').innerHTML = Object.entries(TABS).map(([k, [l, f]]) => `<button type="button" data-f="${k}" aria-pressed="${k === cTab}">${l}<span>${contacts.filter(f).length}</span></button>`).join('');
   const q = $('#c-q').value.trim().toLowerCase(), qd = q.replace(/\D/g, '');
   const st = $('#c-stage').value, ty = $('#c-type').value, so = $('#c-sort').value;
+  filtLabel();
   let list = contacts.filter(TABS[cTab][1]).filter((c) =>
     (!st || (st === 'open' ? c.stage && c.stage !== 'closed' && c.stage !== 'lost' : st === 'none' ? !c.stage : c.stage === st)) &&
     (!ty || c.lead_type === ty) &&
@@ -407,10 +471,18 @@ $('#c-tabs').addEventListener('click', (e) => { const b = e.target.closest('butt
 ['#c-stage', '#c-type', '#c-sort'].forEach((s) => $(s).addEventListener('change', () => { cLimit = 100; renderContacts(); }));
 $('#c-q').addEventListener('input', () => { cLimit = 100; renderContacts(); });
 $('#c-more').addEventListener('click', () => { cLimit += 200; renderContacts(); });
+$('#c-filt').addEventListener('click', () => {
+  const open = $('#cbar').classList.toggle('open');
+  $('#c-filt').setAttribute('aria-expanded', String(open));
+});
+function filtLabel() {
+  const n = ['#c-stage', '#c-type'].filter((s) => $(s).value).length + ($('#c-sort').value !== 'recent' ? 1 : 0);
+  $('#c-filt').textContent = n ? `Filter · ${n}` : 'Filter';
+}
 
 /* ---------- pipeline ---------- */
 const COLS = ['new', 'contacted', 'active', 'under_contract', 'closed', 'nurture'];
-let pType = '';
+let pType = '', pStage = 'new';
 function card(c) {
   const t = today();
   const fu = c.next_follow_up ? (c.next_follow_up < t ? `<strong>Overdue · ${esc(fmtDay(c.next_follow_up))}</strong>` : `Follow up ${esc(fmtDay(c.next_follow_up))}`) : 'No follow-up set';
@@ -421,13 +493,16 @@ function renderPipeline() {
   const cutoff = Date.now() - 90 * 864e5;
   const list = contacts.filter((c) => c.stage && (!pType || c.lead_type === pType));
   const order = (a, b) => (a.next_follow_up || '9999').localeCompare(b.next_follow_up || '9999') || b.created_at.localeCompare(a.created_at);
+  const inCol = (s) => list.filter((c) => c.stage === s && (s !== 'closed' || new Date(c.stage_changed_at || c.updated_at) > cutoff));
+  $('#p-stages').innerHTML = COLS.map((s) => `<button type="button" data-s="${s}" aria-pressed="${s === pStage}">${STAGE[s]}<span>${inCol(s).length}</span></button>`).join('');
   $('#p-board').innerHTML = COLS.map((s) => {
-    const items = list.filter((c) => c.stage === s && (s !== 'closed' || new Date(c.stage_changed_at || c.updated_at) > cutoff)).sort(order);
-    return `<div class="col" data-stage="${s}"><div class="col-h"><span>${STAGE[s]}</span><span>${items.length}</span></div><div class="col-b">${items.map(card).join('') || '<p class="col-empty">None</p>'}</div></div>`;
+    const items = inCol(s).sort(order);
+    return `<div class="col${s === pStage ? ' on' : ''}" data-stage="${s}"><div class="col-h"><span>${STAGE[s]}</span><span>${items.length}</span></div><div class="col-b">${items.map(card).join('') || '<p class="col-empty">None</p>'}</div></div>`;
   }).join('');
   const lost = list.filter((c) => c.stage === 'lost').length;
   $('#p-lost').innerHTML = lost ? `${lost} marked lost. <button type="button" class="tlink muted" id="p-lost-go">View them</button>` : '';
 }
+$('#p-stages').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { pStage = b.dataset.s; renderPipeline(); } });
 $('#p-types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { pType = b.dataset.v; renderPipeline(); } });
 $('#p-lost').addEventListener('click', (e) => {
   if (!e.target.closest('#p-lost-go')) return;
@@ -451,7 +526,7 @@ function setStage(c, s) {
 
 /* ---------- contact drawer ---------- */
 let cur = null, acts = [], logKind = 'note', delArm = false, delAct = null;
-const FU_QUICK = [['0', 'Today'], ['1', 'Tomorrow'], ['3', '3 days'], ['7', '1 week'], ['14', '2 weeks'], ['30', '1 month'], ['', 'Clear']];
+const FU_QUICK = [['1', 'Tomorrow'], ['3', '3 days'], ['7', '1 week'], ['30', '1 month']];
 const det = $('#cd-form');
 det.elements.category.innerHTML = options(CATS);
 det.elements.lead_type.innerHTML = options(TYPES, '—');
@@ -484,14 +559,18 @@ function drawContact() {
   $('#cd-meta').innerHTML = [CAT[c.category], TYPE[c.lead_type], c.source && 'From ' + pretty(SOURCE, c.source) + (c.source_detail ? ` (${c.source_detail})` : ''), 'Added ' + ago(c.created_at), c.last_contacted_at && 'Last contacted ' + ago(c.last_contacted_at)]
     .filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('');
   const tel = telNum(c.phone);
-  $('#cd-acts').innerHTML = [
+  const btns = [
     tel && `<a class="btn" href="tel:${tel}" data-k="call">Call</a>`,
     tel && `<a class="btn ghost" href="sms:${tel}" data-k="text">Text</a>`,
     c.email && `<a class="btn ghost" href="mailto:${esc(c.email)}" data-k="email">Email</a>`,
-  ].filter(Boolean).join('') + `<div class="cd-contact">${[showPhone(c.phone), c.email].filter(Boolean).map(esc).join(' · ') || 'No phone or email yet. Add them under Details.'}</div>`;
-  $('#cd-stage').innerHTML = chips([...STAGES, ['', 'Not in pipeline']], c.stage || '');
+  ].filter(Boolean).join('');
+  $('#cd-acts').innerHTML = `<div class="cd-contact">${[showPhone(c.phone), c.email].filter(Boolean).map(esc).join(' · ') || 'No phone or email yet. Add them under Details.'}</div>` + (btns ? `<div class="cd-btns">${btns}</div>` : '');
+  const sel = $('#cd-stage');
+  sel.innerHTML = options([...STAGES, ['', 'Not in pipeline']]);
+  sel.value = c.stage || ''; sel.dataset.s = c.stage || '';
   $('#cd-fu').value = c.next_follow_up || '';
   $('#cd-fu-q').innerHTML = chips(FU_QUICK, null);
+  $('#cd-fu-clear').hidden = !c.next_follow_up;
   $('#cd-fu-note').textContent = c.next_follow_up ? (c.next_follow_up < t ? '· overdue' : '· ' + fmtDay(c.next_follow_up)) : '';
   drawKinds();
 }
@@ -520,9 +599,10 @@ function drawTimeline() {
 
 document.querySelectorAll('#cd [data-x]').forEach((el) => el.addEventListener('click', () => closeContact()));
 $('#cd-acts').addEventListener('click', (e) => { const a = e.target.closest('[data-k]'); if (a) { logKind = a.dataset.k; drawKinds(); } });
-$('#cd-stage').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && (b.dataset.v || null) !== cur.stage) setStage(cur, b.dataset.v); });
+$('#cd-stage').addEventListener('change', (e) => { if ((e.target.value || null) !== cur.stage) setStage(cur, e.target.value); });
 $('#cd-fu').addEventListener('change', (e) => setFollowUp(e.target.value || null));
-$('#cd-fu-q').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFollowUp(b.dataset.v === '' ? null : addDays(Number(b.dataset.v))); });
+$('#cd-fu-q').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFollowUp(addDays(Number(b.dataset.v))); });
+$('#cd-fu-clear').addEventListener('click', () => setFollowUp(null));
 function setFollowUp(d) {
   $('#cd-fu-wrap').classList.remove('nudge');
   return patchContact(cur.id, { next_follow_up: d }, d ? `Follow up ${fmtDay(d)}` : 'Follow-up cleared');
@@ -608,7 +688,7 @@ const QA = {
   category: CATS,
   lead_type: TYPES,
   status: [['new', 'Need to reach out'], ['contacted', 'Already talking']],
-  source: SOURCES.filter(([k]) => ['tiktok', 'instagram', 'facebook', 'referral', 'website', 'open_house', 'sign_call', 'past_client', 'sphere', 'other'].includes(k)),
+  source: SOURCES.filter(([k]) => ['tiktok', 'instagram', 'facebook', 'referral', 'website', 'open_house', 'other'].includes(k)),
 };
 let qa = {};
 function openQuick(category = 'lead') {
