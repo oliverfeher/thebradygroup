@@ -1,5 +1,6 @@
 ---
-// CRM views for the admin: Today, Contacts, Pipeline, plus the contact drawer, quick add and import.
+// CRM views for the admin: Today, Contacts, Pipeline, plus the contact drawer (deals, showings,
+// templates), quick add and import. Stats and Templates screens live in CrmStats / CrmTemplates.
 // Everything is inline (like the rest of the admin) so dist/admin/index.html stays self-contained.
 // Relies on window.TBG (Supabase client + helpers) from admin/index.astro and listens for its
 // tbg:session / tbg:view events.
@@ -10,6 +11,7 @@
     <button class="btn hide-m" type="button" data-quick>+ Add lead</button>
   </div>
   <div class="stats" id="t-stats"></div>
+  <div class="stats money" id="t-money"></div>
   <div id="t-body"></div>
 </main>
 
@@ -51,6 +53,7 @@
     <div class="db">
       <div class="cd-meta" id="cd-meta"></div>
       <div class="cd-acts" id="cd-acts"></div>
+      <div class="tpl-pick" id="cd-tpl" hidden></div>
       <div class="cd-grid">
         <label class="fld"><span class="lbl">Stage</span><span class="sel stage-sel"><select id="cd-stage" aria-label="Stage"></select></span></label>
         <div class="fld" id="cd-fu-wrap"><span class="lbl">Next follow-up <span id="cd-fu-note"></span> <button type="button" class="fu-clear" id="cd-fu-clear" hidden>Clear</button></span>
@@ -65,6 +68,35 @@
         <textarea class="in" name="body" rows="3" placeholder="What happened? What's next?"></textarea>
         <div><button class="btn" type="submit">Save to timeline</button></div>
       </form>
+      <div class="fld cd-sec" id="cd-deals-wrap">
+        <div class="sec-h"><span class="lbl">Deals</span><button type="button" class="tlink" id="cd-deal-add">+ Add deal</button></div>
+        <div id="cd-deals"></div>
+        <form class="subform g2" id="cd-deal-form" hidden novalidate>
+          <div class="fld span2"><span class="lbl">Side</span><div class="chips sm seg" id="df-side"></div></div>
+          <label class="fld span2"><span class="lbl">Property address</span><input class="in" name="address" list="tbg-listings" autocomplete="off"></label>
+          <label class="fld"><span class="lbl">Price</span><input class="in" name="price" inputmode="decimal" placeholder="289,900"></label>
+          <label class="fld"><span class="lbl">Commission %</span><input class="in" name="commission_pct" inputmode="decimal"></label>
+          <label class="fld span2"><span class="lbl">Status</span><span class="sel2"><select class="in" name="status"></select></span></label>
+          <label class="fld"><span class="lbl">Contract date</span><input class="in" type="date" name="contract_date"></label>
+          <label class="fld"><span class="lbl">Closing date</span><input class="in" type="date" name="closing_date"></label>
+          <label class="chk span2"><input type="checkbox" name="make_default"> Use this % as the default for new deals</label>
+          <p class="err span2" id="df-err" hidden></p>
+          <div class="span2 sub-btns"><button class="btn" type="submit">Save deal</button><button class="btn ghost" type="button" data-cancel>Cancel</button><button type="button" class="tlink muted" id="df-del" hidden>Delete deal</button></div>
+        </form>
+      </div>
+      <div class="fld cd-sec" id="cd-show-wrap">
+        <div class="sec-h"><span class="lbl">Showings</span><button type="button" class="tlink" id="cd-show-add">+ Log showing</button></div>
+        <div id="cd-shows"></div>
+        <form class="subform g2" id="cd-show-form" hidden novalidate>
+          <label class="fld"><span class="lbl">Date</span><input class="in" type="date" name="shown_on"></label>
+          <label class="fld"><span class="lbl">Address *</span><input class="in" name="address" list="tbg-listings" autocomplete="off"></label>
+          <div class="fld span2"><span class="lbl">How did they like it?</span><div class="chips sm seg" id="sf-rating"></div></div>
+          <label class="fld span2"><span class="lbl">Feedback</span><textarea class="in" name="feedback" rows="2" placeholder="Loved the kitchen, yard too small…"></textarea></label>
+          <p class="err span2" id="sf-err" hidden></p>
+          <div class="span2 sub-btns"><button class="btn" type="submit">Save showing</button><button class="btn ghost" type="button" data-cancel>Cancel</button><button type="button" class="tlink muted" id="sf-del" hidden>Delete</button></div>
+        </form>
+      </div>
+      <datalist id="tbg-listings"></datalist>
       <div class="fld"><span class="lbl">Timeline</span><div class="tl" id="cd-tl"></div></div>
       <details class="cd-det" id="cd-det">
         <summary class="lbl">Details</summary>
@@ -83,6 +115,7 @@
           <label class="fld"><span class="lbl">Property address</span><input class="in" name="address"></label>
           <label class="fld"><span class="lbl">Base (PCS)</span><input class="in" name="base" placeholder="Seymour Johnson AFB"></label>
           <label class="fld"><span class="lbl">Report date (PCS)</span><input class="in" name="report_date" type="date"></label>
+          <label class="fld"><span class="lbl">Birthday</span><input class="in" name="birthday" type="date"></label>
           <label class="fld"><span class="lbl">Company</span><input class="in" name="company"></label>
           <label class="fld"><span class="lbl">Role</span><input class="in" name="role" placeholder="Lender, inspector, attorney…"></label>
           <label class="fld span2"><span class="lbl">Tags · comma separated</span><input class="in" name="tags" placeholder="VA loan, first-time buyer"></label>
@@ -239,6 +272,31 @@
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0}
 .seg button{margin-left:-1px;padding-inline:4px!important}
 .fab{display:none}
+/* money row on Today */
+.stats.money{grid-template-columns:repeat(2,minmax(0,1fr));border-top:0;margin-top:-48px}
+/* drawer sections: deals, showings, templates */
+.cd-sec{border-top:1px solid var(--gray);padding-top:16px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.ditem{display:grid;gap:4px;width:100%;text-align:left;border:0;border-bottom:1px solid #d9d5cf;background:none;padding:12px 0;cursor:pointer}
+.ditem:hover .dt{text-decoration:underline}
+.ditem .dt{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font:700 15px/1.3 var(--sans);color:var(--ink)}
+.ditem .dm{font-size:13px;color:var(--brown)}
+.ditem .dn{font-size:13px;color:var(--taupe);white-space:pre-wrap}
+.sec-empty{margin:4px 0 0;font-size:13px;color:var(--gray)}
+.stag[data-s=fell_through],.stag[data-s=no]{background:none;color:var(--taupe);box-shadow:inset 0 0 0 1px var(--gray)}
+.stag[data-s=loved]{background:var(--navy)}.stag[data-s=maybe]{background:var(--taupe)}
+.subform{background:var(--paper);border:1px solid #d9d5cf;padding:16px;margin-top:4px}
+.sub-btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.sub-btns .tlink{margin-left:auto}
+.chk{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--brown);cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--navy)}
+.tpl-pick{display:grid;border:1px solid #d9d5cf;background:var(--paper)}
+.tpl-pick button{display:grid;gap:4px;text-align:left;border:0;border-bottom:1px solid #d9d5cf;background:none;padding:12px 14px;cursor:pointer}
+.tpl-pick button:last-child{border-bottom:0}
+.tpl-pick button:hover{background:var(--ivory)}
+.tpl-pick button:disabled{cursor:default;opacity:.55}
+.tpl-pick b{font:700 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--navy)}
+.tpl-pick span{font-size:13px;color:var(--brown);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tpl-pick .hint{padding:12px 14px}
 @media (max-width:760px){
   .hide-m{display:none!important}
   .eyebrow-opt{display:none}
@@ -251,6 +309,7 @@
   .head-btns .btn{padding:11px 14px}
   .stats{margin-bottom:28px}.stats div{padding:12px 0;gap:6px}.stats div+div{padding-left:12px}.stats b{font-size:26px}
   .stats .lbl{font-size:9px;letter-spacing:.14em}
+  .stats.money{margin-top:-28px}
   .tsec{margin-bottom:32px}.tsec-h{padding-bottom:6px}.tsec-h h2{font-size:18px}
   .tsec .hint{display:none}
   .tsec .rows{border-top:1px solid var(--gray)}
@@ -291,9 +350,13 @@ const TIMELINES = ['ASAP', '1–3 months', '3–6 months', '6–12 months', '12+
 const KINDS = [['note', 'Note'], ['call', 'Call'], ['text', 'Text'], ['email', 'Email'], ['meeting', 'Meeting']];
 const OUTCOMES = { call: ['Talked', 'Left voicemail', 'No answer'], text: ['Sent a text', 'They replied'], email: ['Sent an email', 'They replied'], meeting: ['Showing', 'Listing appointment', 'Consultation'], note: [] };
 const STAGE = Object.fromEntries(STAGES), CAT = Object.fromEntries(CATS), TYPE = Object.fromEntries(TYPES), SOURCE = Object.fromEntries(SOURCES);
-const KIND = { ...Object.fromEntries(KINDS), form: 'Website form', stage: 'Stage' };
+const KIND = { ...Object.fromEntries(KINDS), form: 'Website form', stage: 'Stage', deal: 'Deal', showing: 'Showing' };
+const DEAL_STATUS = [['under_contract', 'Under contract'], ['closed', 'Closed'], ['fell_through', 'Fell through']];
+const RATINGS = [['loved', 'Loved it'], ['maybe', 'Maybe'], ['no', 'No']];
+const DSTATUS = Object.fromEntries(DEAL_STATUS), RATING = Object.fromEntries(RATINGS);
 const pretty = (map, v) => map[v] || (v ? String(v).replace(/_/g, ' ').replace(/^./, (m) => m.toUpperCase()) : '');
 const CRM_VIEWS = ['today', 'contacts', 'pipeline'];
+window.TBG.crm = { SOURCE, STAGE, pretty };
 
 /* ---------- helpers ---------- */
 const ymd = (d) => d.toLocaleDateString('en-CA');
@@ -320,25 +383,49 @@ const normEmail = (e) => String(e || '').trim().toLowerCase() || null;
 const showPhone = (p) => { const d = normPhone(p); return d && d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : p || ''; };
 const telNum = (p) => { const d = normPhone(p); return d ? (d.length === 10 ? '+1' + d : d) : ''; };
 const chips = (list, on, attr = 'data-v') => list.map(([v, l]) => `<button type="button" ${attr}="${esc(v)}" aria-pressed="${v === on}">${esc(l)}</button>`).join('');
+const money = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+const moneyShort = (n) => (n >= 1e6 ? '$' + (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e5 ? '$' + Math.round(n / 1e3) + 'K' : money(n));
+const commission = (d) => ((Number(d.price) || 0) * (Number(d.commission_pct) || 0)) / 100;
+const toNum = (v) => { const t = String(v ?? '').replace(/[^0-9.]/g, ''); return t ? Number(t) : null; };
 const options = (list, blank) => (blank != null ? `<option value="">${esc(blank)}</option>` : '') + list.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
 
 /* ---------- data ---------- */
 let contacts = [], loadedAt = 0, loading = null, session = null, view = null;
+let deals = [], defaultPct = 3, listingOpts = [], nurturedOn = '';
 const byId = (id) => contacts.find((c) => c.id === id);
 function loadContacts(force) {
   if (loading) return loading;
   if (!force && loadedAt && Date.now() - loadedAt < 30000) return Promise.resolve();
   loading = (async () => {
+    // Once a day: give past clients who've gone 90 days without contact a follow-up for today.
+    if (nurturedOn !== today()) {
+      nurturedOn = today();
+      const { error } = await sb.rpc('schedule_nurture');
+      if (error) console.warn('schedule_nurture:', error.message);
+    }
     const all = [];
+    const extras = loadExtras();
     for (let from = 0; ; from += 1000) {
       const { data, error } = await sb.from('contacts').select('*').order('created_at', { ascending: false }).range(from, from + 999);
       if (error) throw error;
       all.push(...data);
       if (data.length < 1000) break;
     }
+    await extras;
     contacts = all; loadedAt = Date.now();
   })().catch((e) => fail(e, 'Couldn’t load contacts')).finally(() => (loading = null));
   return loading;
+}
+// Deals, default commission % and Devin's listings (for address suggestions). Missing v1.1 tables are non-fatal.
+async function loadExtras() {
+  const [d, st, ls] = await Promise.all([
+    sb.from('deals').select('*').order('created_at', { ascending: false }),
+    sb.from('settings').select('value').eq('key', 'default_commission_pct').maybeSingle(),
+    sb.from('listings').select('id,street,city'),
+  ]);
+  if (d.error) console.warn('deals:', d.error.message); else deals = d.data;
+  if (!st.error && st.data) defaultPct = Number(st.data.value) || 3;
+  if (!ls.error) listingOpts = ls.data;
 }
 function keep(c) { const i = contacts.findIndex((x) => x.id === c.id); if (i >= 0) contacts[i] = c; else contacts.unshift(c); }
 function rerender() { if (view === 'today') renderToday(); if (view === 'contacts') renderContacts(); if (view === 'pipeline') renderPipeline(); }
@@ -420,6 +507,11 @@ function renderToday() {
     ['Working', count((c) => c.stage === 'contacted' || c.stage === 'active')],
     ['Under contract', count((c) => c.stage === 'under_contract')],
   ].map(([l, n]) => `<div><span class="lbl">${l}</span><b>${n}</b></div>`).join('');
+  const pending = deals.filter((d) => d.status === 'under_contract');
+  $('#t-money').innerHTML = [
+    ['Pending volume', moneyShort(pending.reduce((a, d) => a + (Number(d.price) || 0), 0))],
+    ['Expected commission', money(pending.reduce((a, d) => a + commission(d), 0))],
+  ].map(([l, n]) => `<div><span class="lbl">${l}</span><b>${n}</b></div>`).join('');
 
   if (!contacts.length) {
     $('#t-body').innerHTML = `<div class="empty-big"><h2>Let's get started</h2><p>Add your first lead, or import your phone contacts so everyone you know is in one place.</p><div class="head-btns"><button class="btn" type="button" data-quick>+ Add lead</button><button class="btn ghost" type="button" onclick="location.hash='contacts';setTimeout(()=>document.getElementById('c-import').click(),50)">Import contacts</button></div></div>`;
@@ -438,10 +530,31 @@ function renderToday() {
   const html = [
     sec('New leads', 'Reach out fast. The first agent to respond usually wins the client.', fresh, (c) => (Date.now() - new Date(c.created_at) > 864e5 ? `<strong>No contact yet · came in ${esc(ago(c.created_at))}</strong>` : `Came in ${esc(ago(c.created_at))}`)),
     sec('Overdue', '', overdue, followNote),
-    sec('Follow up today', '', due, (c) => (c.last_contacted_at ? `Last contacted ${esc(ago(c.last_contacted_at))}` : 'Not contacted yet')),
+    sec('Follow up today', '', due, (c) => (c.category === 'past_client' && (!c.stage || c.stage === 'closed') ? 'Past client check-in' : c.last_contacted_at ? `Last contacted ${esc(ago(c.last_contacted_at))}` : 'Not contacted yet')),
+    (() => { const up = upcoming(); return sec('Past clients to reach out to', 'Birthdays and home anniversaries in the next 7 days.', up.map((u) => u.c), (c) => up.find((u) => u.c === c).notes.map(esc).join(' · ')); })(),
     sec('No next step', 'In the pipeline but no follow-up date. Open each one and pick a day.', nostep, (c) => (c.last_contacted_at ? `Last contacted ${esc(ago(c.last_contacted_at))}` : `Added ${esc(ago(c.created_at))}`)),
   ].join('');
   $('#t-body').innerHTML = html || `<div class="empty-big"><h2>All caught up</h2><p>No new leads or follow-ups due today. New website leads show up here automatically.</p></div>`;
+}
+
+// Birthdays and home anniversaries (closed deals) in the next 7 days, one row per person.
+function upcoming() {
+  const t = today(), y = Number(t.slice(0, 4));
+  const nextOn = (md) => { const d = (md >= t.slice(5) ? y : y + 1) + '-' + md; return isNaN(new Date(d + 'T12:00')) ? null : d; };
+  const out = new Map();
+  const add = (c, d, note) => {
+    const n = dayDiff(t, d); if (!c || n < 0 || n > 7) return;
+    const u = out.get(c.id) || { c, n, notes: [] };
+    u.n = Math.min(u.n, n); u.notes.push(note + (n === 0 ? ' today' : ' ' + fmtDay(d))); out.set(c.id, u);
+  };
+  contacts.forEach((c) => { const d = c.birthday && nextOn(c.birthday.slice(5)); if (d) add(c, d, 'Birthday'); });
+  deals.forEach((dl) => {
+    if (dl.status !== 'closed' || !dl.closing_date) return;
+    const d = nextOn(dl.closing_date.slice(5)); if (!d) return;
+    const yrs = Number(d.slice(0, 4)) - Number(dl.closing_date.slice(0, 4));
+    if (yrs >= 1) add(byId(dl.contact_id), d, `${yrs}-year home anniversary`);
+  });
+  return [...out.values()].sort((a, b) => a.n - b.n);
 }
 
 /* ---------- contacts ---------- */
@@ -540,15 +653,17 @@ async function openContact(id, kind) {
     if (!data) { toast('Contact not found'); return history.replaceState(null, '', '#' + (view || 'today')); }
     keep(data); c = data;
   }
-  cur = c; delArm = false; delAct = null; acts = [];
+  cur = c; delArm = false; delAct = null; acts = []; shows = [];
   logKind = kind || 'note';
   $('#cd-log').reset();
+  closeDealForm(); closeShowForm(); $('#cd-tpl').hidden = true;
+  $('#tbg-listings').innerHTML = listingOpts.map((l) => `<option value="${esc(l.street + ', ' + l.city)}">`).join('');
   $('#cd-fu-wrap').classList.remove('nudge');
   $('#cd-det').open = false;
   drawContact(); fillDetails();
   $('#cd').hidden = false; document.body.style.overflow = 'hidden';
   history.replaceState(null, '', '#c/' + id);
-  loadTimeline();
+  loadTimeline(); loadShows();
   if (kind) setTimeout(() => $('#cd-log textarea').focus({ preventScroll: true }), 60);
 }
 function closeContact(restoreHash = true) {
@@ -566,7 +681,7 @@ function drawContact() {
     tel && `<a class="btn ghost" href="sms:${tel}" data-k="text">Text</a>`,
     c.email && `<a class="btn ghost" href="mailto:${esc(c.email)}" data-k="email">Email</a>`,
   ].filter(Boolean).join('');
-  $('#cd-acts').innerHTML = `<div class="cd-contact">${[showPhone(c.phone), c.email].filter(Boolean).map(esc).join(' · ') || 'No phone or email yet. Add them under Details.'}</div>` + (btns ? `<div class="cd-btns">${btns}</div>` : '');
+  $('#cd-acts').innerHTML = `<div class="cd-contact">${[showPhone(c.phone), c.email].filter(Boolean).map(esc).join(' · ') || 'No phone or email yet. Add them under Details.'}</div>` + (btns ? `<div class="cd-btns">${btns}</div><button type="button" class="tlink" id="cd-tpl-t">Send a template</button>` : '');
   const sel = $('#cd-stage');
   sel.innerHTML = options([...STAGES, ['', 'Not in pipeline']]);
   sel.value = c.stage || ''; sel.dataset.s = c.stage || '';
@@ -574,7 +689,7 @@ function drawContact() {
   $('#cd-fu-q').innerHTML = chips(FU_QUICK, null);
   $('#cd-fu-clear').hidden = !c.next_follow_up;
   $('#cd-fu-note').textContent = c.next_follow_up ? (c.next_follow_up < t ? '· overdue' : '· ' + fmtDay(c.next_follow_up)) : '';
-  drawKinds();
+  drawKinds(); drawDeals(); drawShows();
 }
 function drawKinds() {
   $('#cd-kind').innerHTML = chips(KINDS, logKind);
@@ -590,11 +705,15 @@ async function loadTimeline() {
   acts = data; drawTimeline();
 }
 const stageName = (s) => STAGE[s] || 'Not in pipeline';
+const LOCKED = ['form', 'stage', 'deal', 'showing'];
 function drawTimeline() {
-  $('#cd-tl').innerHTML = acts.length ? acts.map((a) => `
+  // Showings live in their own table; fold them into the timeline by date.
+  const items = [...acts, ...shows.map((sh) => ({ id: 's' + sh.id, created_at: sh.shown_on + 'T12:00:00', kind: 'showing', day: true, body: [sh.address, RATING[sh.rating], sh.feedback].filter(Boolean).join(' · ') }))]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  $('#cd-tl').innerHTML = items.length ? items.map((a) => `
     <div class="tl-i" data-aid="${a.id}" data-k="${a.kind}">
-      <div class="tl-h"><span class="lbl">${esc(KIND[a.kind] || a.kind)}</span><span class="tl-t">${esc(when(a.created_at))}${a.created_by && a.created_by === session?.user.id ? ' · You' : ''}</span>
-        ${KIND[a.kind] && a.kind !== 'form' && a.kind !== 'stage' ? `<button type="button" class="tl-del" data-del>${delAct === a.id ? 'Confirm delete' : 'Delete'}</button>` : ''}</div>
+      <div class="tl-h"><span class="lbl">${esc(KIND[a.kind] || a.kind)}</span><span class="tl-t">${esc(a.day ? fmtDay(a.created_at.slice(0, 10)) : when(a.created_at))}${a.created_by && a.created_by === session?.user.id ? ' · You' : ''}</span>
+        ${KIND[a.kind] && !LOCKED.includes(a.kind) ? `<button type="button" class="tl-del" data-del>${delAct === a.id ? 'Confirm delete' : 'Delete'}</button>` : ''}</div>
       ${a.kind === 'stage' ? `<p>${esc(stageName(a.meta?.from))} → ${esc(stageName(a.meta?.to))}</p>` : a.body ? `<p>${esc(a.body)}</p>` : ''}
     </div>`).join('') : '<p class="hint">Nothing here yet. Log your first call, text or note above.</p>';
 }
@@ -625,18 +744,178 @@ $('#cd-log').addEventListener('submit', async (e) => {
   btn.disabled = false;
   if (error) return fail(error, 'Couldn’t save');
   f.reset();
-  // A logged call/text/email/meeting completes a due follow-up, so clear it and ask for the next one.
   const touch = logKind !== 'note';
-  const fuDone = touch && cur.next_follow_up && cur.next_follow_up <= today();
+  logKind = 'note'; drawKinds();
+  const needNext = await afterTouch(id, touch);
+  toast(needNext ? 'Logged. When should you follow up next?' : 'Logged');
+});
+// After anything lands on the timeline: refresh the contact (triggers may have moved the stage).
+// A call/text/email/meeting completes a due follow-up, so clear it and nudge for the next one.
+async function afterTouch(id, touch) {
+  const fuDone = touch && cur?.id === id && cur.next_follow_up && cur.next_follow_up <= today();
   const { data } = fuDone
     ? await sb.from('contacts').update({ next_follow_up: null }).eq('id', id).select().single()
     : await sb.from('contacts').select('*').eq('id', id).single();
   if (data) { keep(data); if (cur?.id === id) { cur = data; drawContact(); } rerender(); }
-  logKind = 'note'; drawKinds();
-  await loadTimeline();
-  const needNext = touch && data && !data.next_follow_up && data.stage && data.stage !== 'closed' && data.stage !== 'lost';
+  if (cur?.id === id) await loadTimeline();
+  const needNext = touch && data && cur?.id === id && !data.next_follow_up && data.stage && data.stage !== 'closed' && data.stage !== 'lost';
   if (needNext) { $('#cd-fu-wrap').classList.add('nudge'); $('#cd-fu-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-  toast(needNext ? 'Logged. When should you follow up next?' : 'Logged');
+  return needNext;
+}
+
+/* ---------- templates (send from the contact drawer) ---------- */
+const firstName = (n) => String(n || '').trim().split(/\s+/)[0] || '';
+const fillTpl = (text, c) => String(text || '').replace(/\{first_name\}/g, firstName(c.name)).replace(/\{name\}/g, c.name);
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let tpls = [];
+$('#cd-acts').addEventListener('click', async (e) => {
+  if (!e.target.closest('#cd-tpl-t')) return;
+  const box = $('#cd-tpl');
+  if (!box.hidden) { box.hidden = true; return; }
+  box.innerHTML = '<p class="hint">Loading…</p>'; box.hidden = false;
+  const { data, error } = await sb.from('templates').select('*').order('sort').order('name');
+  if (error) { box.innerHTML = '<p class="hint">Templates aren’t set up yet (run crm-v1.1.sql).</p>'; return; }
+  tpls = data;
+  const c = cur;
+  box.innerHTML = tpls.length ? tpls.map((t) => {
+    const off = t.channel === 'email' ? !c.email : !telNum(c.phone);
+    return `<button type="button" data-tpl="${t.id}" ${off ? 'disabled' : ''}><b>${esc(t.name)}${t.channel === 'email' ? ' · Email' : ''}</b><span>${esc(off ? (t.channel === 'email' ? 'Needs an email address' : 'Needs a phone number') : fillTpl(t.body, c))}</span></button>`;
+  }).join('') : '<p class="hint">No templates yet. Add some under Templates.</p>';
+});
+$('#cd-tpl').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-tpl]'); if (!b || b.disabled) return;
+  const t = tpls.find((x) => x.id === b.dataset.tpl), c = cur, body = fillTpl(t.body, c);
+  const url = t.channel === 'email'
+    ? `mailto:${c.email}?subject=${encodeURIComponent(fillTpl(t.subject, c))}&body=${encodeURIComponent(body)}`
+    : `sms:${telNum(c.phone)}${isIOS ? '&' : '?'}body=${encodeURIComponent(body)}`;
+  // Log first (Devin won't log it himself), then hand off to Messages / Mail.
+  await sb.from('activities').insert({ contact_id: c.id, kind: t.channel === 'email' ? 'email' : 'text', body: `Sent "${t.name}": ${body}` });
+  $('#cd-tpl').hidden = true;
+  location.href = url;
+  afterTouch(c.id, true);
+});
+
+/* ---------- deals ---------- */
+let dealEdit = null, dealSide = 'buyer', dealDelArm = false;
+const dealForm = $('#cd-deal-form');
+dealForm.elements.status.innerHTML = options(DEAL_STATUS);
+function drawDeals() {
+  const list = deals.filter((d) => d.contact_id === cur.id);
+  $('#cd-deals').innerHTML = list.length ? list.map((d) => `
+    <button type="button" class="ditem" data-deal="${d.id}">
+      <span class="dt">${esc(d.address || 'No address yet')} <span class="stag" data-s="${d.status}">${esc(DSTATUS[d.status])}</span></span>
+      <span class="dm">${[d.side === 'seller' ? 'Seller side' : 'Buyer side', d.price != null && money(d.price), d.price != null && d.commission_pct != null && `${Number(d.commission_pct)}% = ${money(commission(d))}`, d.closing_date && (d.status === 'closed' ? 'Closed ' : 'Closing ') + fmtDay(d.closing_date)].filter(Boolean).map(esc).join(' · ')}</span>
+    </button>`).join('') : '<p class="sec-empty">No deals yet. Add one when they go under contract.</p>';
+}
+function openDealForm(d) {
+  const f = dealForm; dealEdit = d || null; dealDelArm = false;
+  f.reset();
+  dealSide = d?.side || (cur.lead_type === 'seller' ? 'seller' : 'buyer');
+  $('#df-side').innerHTML = chips([['buyer', 'Buyer side'], ['seller', 'Seller side']], dealSide);
+  f.elements.address.value = d?.address ?? (cur.address || '');
+  f.elements.price.value = d?.price != null ? Number(d.price).toLocaleString('en-US') : '';
+  f.elements.commission_pct.value = d?.commission_pct != null ? Number(d.commission_pct) : defaultPct;
+  f.elements.status.value = d?.status || 'under_contract';
+  f.elements.contract_date.value = d ? d.contract_date || '' : today();
+  f.elements.closing_date.value = d?.closing_date || '';
+  $('#df-del').hidden = !d; $('#df-del').textContent = 'Delete deal'; $('#df-err').hidden = true;
+  f.hidden = false; $('#cd-deal-add').hidden = true;
+  f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function closeDealForm() { dealForm.hidden = true; $('#cd-deal-add').hidden = false; dealEdit = null; }
+$('#cd-deal-add').addEventListener('click', () => openDealForm(null));
+$('#cd-deals').addEventListener('click', (e) => { const b = e.target.closest('[data-deal]'); if (b) openDealForm(deals.find((d) => d.id === b.dataset.deal)); });
+$('#df-side').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { dealSide = b.dataset.v; $('#df-side').innerHTML = chips([['buyer', 'Buyer side'], ['seller', 'Seller side']], dealSide); } });
+dealForm.querySelector('[data-cancel]').addEventListener('click', closeDealForm);
+dealForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = dealForm.elements, err = $('#df-err'), id = cur.id;
+  const pct = toNum(f.commission_pct.value);
+  if (pct != null && pct > 100) { err.textContent = 'Commission % looks too high.'; err.hidden = false; return; }
+  const row = {
+    contact_id: id, side: dealSide, address: f.address.value.trim() || null,
+    price: toNum(f.price.value), commission_pct: pct, status: f.status.value,
+    contract_date: f.contract_date.value || null,
+    // Anniversaries need a closing date, so a closed deal always gets one.
+    closing_date: f.closing_date.value || (f.status.value === 'closed' ? today() : null),
+  };
+  const btn = dealForm.querySelector('[type=submit]'); btn.disabled = true;
+  const q = dealEdit ? sb.from('deals').update(row).eq('id', dealEdit.id) : sb.from('deals').insert(row);
+  const { data, error } = await q.select().single();
+  btn.disabled = false;
+  if (error) return fail(error, 'Couldn’t save deal');
+  deals = dealEdit ? deals.map((d) => (d.id === data.id ? data : d)) : [data, ...deals];
+  if (f.make_default.checked && pct != null) {
+    const { error: e2 } = await sb.from('settings').upsert({ key: 'default_commission_pct', value: pct });
+    if (!e2) defaultPct = pct;
+  }
+  closeDealForm(); drawDeals();
+  await afterTouch(id, false);
+  toast(row.status === 'closed' ? 'Deal closed. Congrats!' : 'Deal saved');
+});
+$('#df-del').addEventListener('click', async () => {
+  if (!dealDelArm) { dealDelArm = true; $('#df-del').textContent = 'Click again to delete'; return; }
+  const { error } = await sb.from('deals').delete().eq('id', dealEdit.id);
+  if (error) return fail(error, 'Couldn’t delete');
+  deals = deals.filter((d) => d.id !== dealEdit.id);
+  closeDealForm(); drawDeals(); rerender(); toast('Deal deleted');
+});
+
+/* ---------- showings ---------- */
+let shows = [], showEdit = null, showRating = null, showDelArm = false;
+const showForm = $('#cd-show-form');
+async function loadShows() {
+  const id = cur?.id; if (!id) return;
+  const { data, error } = await sb.from('showings').select('*').eq('contact_id', id).order('shown_on', { ascending: false });
+  if (cur?.id !== id) return;
+  if (error) console.warn('showings:', error.message);
+  shows = error ? [] : data;
+  drawShows(); drawTimeline();
+}
+function drawShows() {
+  $('#cd-show-wrap').hidden = cur.category === 'vendor' || (cur.lead_type === 'seller' && !shows.length);
+  $('#cd-shows').innerHTML = shows.length ? shows.map((sh) => `
+    <button type="button" class="ditem" data-show="${sh.id}">
+      <span class="dt">${esc(sh.address)} ${sh.rating ? `<span class="stag" data-s="${sh.rating}">${esc(RATING[sh.rating])}</span>` : ''}</span>
+      <span class="dm">${esc(fmtDay(sh.shown_on))}${sh.listing_id ? ' · Devin’s listing' : ''}</span>
+      ${sh.feedback ? `<span class="dn">${esc(sh.feedback)}</span>` : ''}
+    </button>`).join('') : '<p class="sec-empty">No showings logged yet.</p>';
+}
+function drawRating() { $('#sf-rating').innerHTML = chips(RATINGS, showRating); }
+function openShowForm(sh) {
+  const f = showForm; showEdit = sh || null; showDelArm = false;
+  f.reset(); showRating = sh?.rating || null; drawRating();
+  f.elements.shown_on.value = sh?.shown_on || today();
+  f.elements.address.value = sh?.address || '';
+  f.elements.feedback.value = sh?.feedback || '';
+  $('#sf-del').hidden = !sh; $('#sf-del').textContent = 'Delete'; $('#sf-err').hidden = true;
+  f.hidden = false; $('#cd-show-add').hidden = true;
+  f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function closeShowForm() { showForm.hidden = true; $('#cd-show-add').hidden = false; showEdit = null; }
+$('#cd-show-add').addEventListener('click', () => openShowForm(null));
+$('#cd-shows').addEventListener('click', (e) => { const b = e.target.closest('[data-show]'); if (b) openShowForm(shows.find((x) => x.id === b.dataset.show)); });
+$('#sf-rating').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { showRating = showRating === b.dataset.v ? null : b.dataset.v; drawRating(); } });
+showForm.querySelector('[data-cancel]').addEventListener('click', closeShowForm);
+showForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = showForm.elements, address = f.address.value.trim();
+  if (!address) { $('#sf-err').textContent = 'Add the address.'; $('#sf-err').hidden = false; return; }
+  const a = address.toLowerCase();
+  const listing = listingOpts.find((l) => a.startsWith(l.street.toLowerCase()));
+  const row = { contact_id: cur.id, shown_on: f.shown_on.value || today(), address, listing_id: listing?.id || null, rating: showRating, feedback: f.feedback.value.trim() || null };
+  const btn = showForm.querySelector('[type=submit]'); btn.disabled = true;
+  const q = showEdit ? sb.from('showings').update(row).eq('id', showEdit.id) : sb.from('showings').insert(row);
+  const { error } = await q;
+  btn.disabled = false;
+  if (error) return fail(error, 'Couldn’t save showing');
+  closeShowForm(); await loadShows(); toast('Showing saved');
+});
+$('#sf-del').addEventListener('click', async () => {
+  if (!showDelArm) { showDelArm = true; $('#sf-del').textContent = 'Click again to delete'; return; }
+  const { error } = await sb.from('showings').delete().eq('id', showEdit.id);
+  if (error) return fail(error, 'Couldn’t delete');
+  closeShowForm(); await loadShows(); toast('Showing deleted');
 });
 $('#cd-tl').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-del]'); if (!b) return;
@@ -647,7 +926,7 @@ $('#cd-tl').addEventListener('click', async (e) => {
   delAct = null; acts = acts.filter((a) => a.id !== id); drawTimeline(); toast('Removed from timeline');
 });
 
-const DFIELDS = ['name', 'phone', 'email', 'category', 'lead_type', 'source', 'source_detail', 'area', 'price_range', 'timeline', 'address', 'base', 'report_date', 'company', 'role', 'tags', 'about'];
+const DFIELDS = ['name', 'phone', 'email', 'category', 'lead_type', 'source', 'source_detail', 'area', 'price_range', 'timeline', 'address', 'base', 'report_date', 'birthday', 'company', 'role', 'tags', 'about'];
 function fillDetails() {
   const src = cur.source && !SOURCE[cur.source] ? [[cur.source, pretty(SOURCE, cur.source)]] : [];
   det.elements.source.innerHTML = options([...SOURCES, ...src], '—');

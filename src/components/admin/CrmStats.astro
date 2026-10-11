@@ -1,0 +1,132 @@
+---
+// Stats screen: closed volume/commission, leads by source, how far leads get in the pipeline.
+// Inline like the rest of the admin. Reads window.TBG (client + CRM vocab), loads its own data when opened.
+---
+<main class="main" id="v-stats" hidden>
+  <div class="head">
+    <div><div class="lbl eyebrow-opt" style="margin-bottom:14px">How it's going</div><h1>Stats</h1></div>
+    <div class="chips sm" id="s-period" role="group" aria-label="Period"></div>
+  </div>
+  <div class="stats" id="s-closed"></div>
+  <section class="tsec">
+    <div class="tsec-h"><h2>Leads by source</h2></div>
+    <p class="hint">New leads in this period, how many of them have closed a deal, and closed deals by source.</p>
+    <div class="st-wrap"><table class="st" id="s-src"></table></div>
+  </section>
+  <section class="tsec">
+    <div class="tsec-h"><h2>How far leads get</h2></div>
+    <p class="hint">Of the leads that came in this period, how many reached each stage.</p>
+    <div class="fun" id="s-fun"></div>
+  </section>
+</main>
+
+<style is:inline>
+.st-wrap{overflow-x:auto}
+.st{width:100%;border-collapse:collapse;font-size:14px}
+.st th{font:700 10px/1.2 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--taupe);text-align:right;padding:10px 8px;border-bottom:1px solid var(--gray);white-space:nowrap}
+.st th:first-child,.st td:first-child{text-align:left;padding-left:0}
+.st td{padding:12px 8px;border-bottom:1px solid #d9d5cf;text-align:right;color:var(--ink);white-space:nowrap}
+.st td.sbar{width:38%;min-width:90px}
+.st .b{height:10px;background:var(--navy)}
+.st tr:hover td{background:var(--paper)}
+.fun{display:grid;gap:10px}
+.fun-r{display:grid;grid-template-columns:130px minmax(0,1fr) 92px;gap:14px;align-items:center;font-size:14px}
+.fun-r .k{font:700 11px/1.2 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--brown)}
+.fun-r .t{height:22px;background:var(--stone)}
+.fun-r .b{height:100%;background:var(--navy);min-width:2px}
+.fun-r .v{text-align:right;color:var(--ink)}.fun-r .v span{color:var(--taupe);margin-left:6px}
+.fun-r:hover .t{outline:1px solid var(--navy)}
+@media (max-width:760px){
+  #v-stats .head{display:flex!important;flex-wrap:wrap}
+  #v-stats .head h1{display:none}
+  .fun-r{grid-template-columns:96px minmax(0,1fr) 80px;gap:10px}
+  .st td.sbar{display:none}.st th.sbar{display:none}
+}
+</style>
+
+<script type="module" is:inline>
+const { sb, $, esc, fail } = window.TBG;
+const { SOURCE, STAGE, pretty } = window.TBG.crm;
+const PERIODS = [['month', 'This month'], ['year', 'This year'], ['all', 'All time']];
+const RANK = { new: 0, contacted: 1, active: 2, under_contract: 3, closed: 4 };
+const FUNNEL = ['new', 'contacted', 'active', 'under_contract', 'closed'];
+const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+const moneyShort = (n) => (n >= 1e6 ? '$' + (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : money(n));
+let period = 'year', data = null, loadedAt = 0;
+
+async function all(table, cols, filter) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    let q = sb.from(table).select(cols).range(from, from + 999);
+    if (filter) q = filter(q);
+    const { data, error } = await q;
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+async function load() {
+  if (data && Date.now() - loadedAt < 60000) return;
+  try {
+    const [contacts, deals, stages] = await Promise.all([
+      all('contacts', 'id,source,stage,category,created_at'),
+      all('deals', 'contact_id,status,price,commission_pct,closing_date,updated_at'),
+      all('activities', 'contact_id,meta', (q) => q.eq('kind', 'stage')),
+    ]);
+    data = { contacts, deals, stages }; loadedAt = Date.now();
+  } catch (e) { fail(e, 'Couldn’t load stats'); }
+}
+function since() {
+  const d = new Date();
+  if (period === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+  if (period === 'year') return new Date(d.getFullYear(), 0, 1);
+  return new Date(0);
+}
+function render() {
+  $('#s-period').innerHTML = PERIODS.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${v === period}">${l}</button>`).join('');
+  if (!data) return;
+  const from = since(), inPeriod = (iso) => iso && new Date(iso.length === 10 ? iso + 'T12:00' : iso) >= from;
+  const byId = new Map(data.contacts.map((c) => [c.id, c]));
+
+  // Closed in period
+  const closed = data.deals.filter((d) => d.status === 'closed' && inPeriod(d.closing_date || d.updated_at));
+  const vol = closed.reduce((a, d) => a + (Number(d.price) || 0), 0);
+  const com = closed.reduce((a, d) => a + ((Number(d.price) || 0) * (Number(d.commission_pct) || 0)) / 100, 0);
+  $('#s-closed').innerHTML = [['Closed volume', moneyShort(vol)], ['Commission', money(com)], ['Deals closed', closed.length]]
+    .map(([l, n]) => `<div><span class="lbl">${l}</span><b>${n}</b></div>`).join('');
+
+  // Leads = pipeline contacts that came in this period (imports aren't leads)
+  const leads = data.contacts.filter((c) => (c.stage || c.category === 'lead') && c.source !== 'import' && inPeriod(c.created_at));
+  const everClosed = new Set(data.deals.filter((d) => d.status === 'closed').map((d) => d.contact_id));
+  const rows = new Map();
+  const row = (src) => rows.get(src) || rows.set(src, { leads: 0, won: 0, closed: 0 }).get(src);
+  leads.forEach((c) => { const r = row(c.source || 'unknown'); r.leads++; if (everClosed.has(c.id)) r.won++; });
+  closed.forEach((d) => { const c = byId.get(d.contact_id); row(c?.source || 'unknown').closed++; });
+  const list = [...rows.entries()].sort((a, b) => b[1].leads - a[1].leads || b[1].closed - a[1].closed);
+  const max = Math.max(1, ...list.map(([, r]) => r.leads));
+  const label = (s) => (s === 'unknown' ? 'Not set' : pretty(SOURCE, s));
+  $('#s-src').innerHTML = list.length
+    ? `<thead><tr><th>Source</th><th class="sbar"></th><th>Leads</th><th>Became clients</th><th>Conversion</th><th>Deals closed</th></tr></thead><tbody>` +
+      list.map(([s, r]) => `<tr title="${esc(label(s))}: ${r.leads} leads, ${r.won} became clients, ${r.closed} deals closed">
+        <td>${esc(label(s))}</td><td class="sbar"><div class="b" style="width:${(r.leads / max) * 100}%"></div></td>
+        <td>${r.leads}</td><td>${r.won}</td><td>${r.leads ? Math.round((r.won / r.leads) * 100) + '%' : '—'}</td><td>${r.closed}</td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td class="hint">No leads in this period yet.</td></tr></tbody>';
+
+  // Furthest stage each lead reached (current stage, stage history, deals)
+  const reach = new Map(leads.map((c) => [c.id, RANK[c.stage] ?? 0]));
+  const bump = (id, r) => { if (reach.has(id) && r != null && r > reach.get(id)) reach.set(id, r); };
+  data.stages.forEach((a) => { bump(a.contact_id, RANK[a.meta?.to]); bump(a.contact_id, RANK[a.meta?.from]); });
+  data.deals.forEach((d) => bump(d.contact_id, d.status === 'closed' ? 4 : d.status === 'under_contract' ? 3 : null));
+  const total = leads.length;
+  $('#s-fun').innerHTML = total ? FUNNEL.map((s, i) => {
+    const n = [...reach.values()].filter((r) => r >= i).length, pct = Math.round((n / total) * 100);
+    return `<div class="fun-r" title="${esc(STAGE[s])}: ${n} of ${total} leads (${pct}%)"><span class="k">${esc(STAGE[s])}</span><div class="t"><div class="b" style="width:${pct}%"></div></div><span class="v">${n}<span>${pct}%</span></span></div>`;
+  }).join('') : '<p class="hint">No leads in this period yet.</p>';
+}
+$('#s-period').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { period = b.dataset.v; render(); } });
+document.addEventListener('tbg:view', async (e) => {
+  if (e.detail.view !== 'stats') return;
+  render(); await load(); render();
+});
+</script>

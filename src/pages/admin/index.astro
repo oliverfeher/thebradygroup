@@ -1,8 +1,10 @@
 ---
 // Self-contained admin page (inline CSS + JS, supabase-js from CDN) so it can be
 // uploaded on its own to the admin.bradygrouphomes.com subdomain folder.
-// Views: Today / Contacts / Pipeline (CRM, in components/admin/Crm.astro) + Listings / TikTok.
+// Views: Today / Contacts / Pipeline / Stats / Templates (CRM, components/admin/Crm*.astro) + Listings / TikTok.
 import Crm from '../../components/admin/Crm.astro';
+import CrmStats from '../../components/admin/CrmStats.astro';
+import CrmTemplates from '../../components/admin/CrmTemplates.astro';
 const cfg = { url: import.meta.env.PUBLIC_SUPABASE_URL, key: import.meta.env.PUBLIC_SUPABASE_ANON_KEY };
 const ASSET = 'https://bradygrouphomes.com/assets';
 ---
@@ -117,6 +119,7 @@ input,select,textarea,button{font:inherit;color:inherit}
 .vin .vw{width:84px;padding:8px 10px;font-size:14px}
 .vin label{display:flex;align-items:center;gap:8px}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--navy);color:var(--ivory);padding:14px 22px;font:700 12px/1.3 var(--sans);letter-spacing:.14em;text-transform:uppercase;z-index:20;box-shadow:0 8px 24px rgba(16,39,86,.25);max-width:calc(100% - 32px);text-align:center}
+@media (max-width:1400px){.bar-r .who{display:none}}
 .subnav{display:none}
 .menu-t{display:none}
 .mtabs{display:none}
@@ -174,7 +177,7 @@ window.TBG = { sb: createClient(window.TBG_CFG.url, window.TBG_CFG.key), $, esc,
 
 <div id="app" hidden>
   <header class="bar">
-    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Admin</span><nav class="views" id="views"><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="contacts" aria-pressed="false">Contacts</button><button type="button" data-v="pipeline" aria-pressed="false">Pipeline</button><button type="button" data-v="listings" aria-pressed="false">Listings</button><button type="button" data-v="videos" aria-pressed="false">TikTok</button></nav></div>
+    <div class="bar-l"><img src={`${ASSET}/bg-reversed.png`} alt="The Brady Group"><span class="div"></span><span class="t">Admin</span><nav class="views" id="views"><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="contacts" aria-pressed="false">Contacts</button><button type="button" data-v="pipeline" aria-pressed="false">Pipeline</button><button type="button" data-v="stats" aria-pressed="false">Stats</button><button type="button" data-v="templates" aria-pressed="false">Templates</button><button type="button" data-v="listings" aria-pressed="false">Listings</button><button type="button" data-v="videos" aria-pressed="false">TikTok</button></nav></div>
     <div class="bar-r"><span class="who" id="who"></span><a href="https://bradygrouphomes.com/listings/" target="_blank" rel="noopener">View site ↗</a><button id="signout" type="button">Sign out</button><button class="menu-t" id="menu-t" type="button" aria-expanded="false" aria-controls="menu">Menu</button></div>
   </header>
   <nav class="mtabs" id="mtabs" aria-label="CRM"><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="contacts" aria-pressed="false">Contacts</button><button type="button" data-v="pipeline" aria-pressed="false">Pipeline</button></nav>
@@ -183,6 +186,8 @@ window.TBG = { sb: createClient(window.TBG_CFG.url, window.TBG_CFG.key), $, esc,
       <button type="button" data-v="today">Today</button>
       <button type="button" data-v="contacts">Contacts</button>
       <button type="button" data-v="pipeline">Pipeline</button>
+      <button type="button" data-v="stats">Stats</button>
+      <button type="button" data-v="templates">Templates</button>
       <button type="button" data-v="listings">Listings</button>
       <button type="button" data-v="videos">TikTok videos</button>
       <button type="button" id="menu-import">Import contacts</button>
@@ -191,6 +196,8 @@ window.TBG = { sb: createClient(window.TBG_CFG.url, window.TBG_CFG.key), $, esc,
     <div class="menu-foot"><span id="menu-who"></span><button type="button" id="menu-out">Sign out</button></div>
   </div>
   <Crm />
+  <CrmStats />
+  <CrmTemplates />
   <main class="main" id="v-listings" hidden>
     <nav class="subnav"><a href="#listings" aria-current="page">Listings</a><a href="#videos">TikTok</a></nav>
     <div class="head">
@@ -272,8 +279,8 @@ function show(session) {
   if (session && !was) route();
   if (!session) current = null;
 }
-/* ---------- views (hash routes: #today #contacts #pipeline #listings #videos, #c/<id> opens a contact) ---------- */
-const VIEWS = ['today', 'contacts', 'pipeline', 'listings', 'videos'];
+/* ---------- views (hash routes: #today #contacts #pipeline #stats #templates #listings #videos, #c/<id> opens a contact) ---------- */
+const VIEWS = ['today', 'contacts', 'pipeline', 'stats', 'templates', 'listings', 'videos'];
 let current = null;
 function go(v) {
   current = v;

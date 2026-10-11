@@ -69,7 +69,7 @@ Go to admin.bradygrouphomes.com and sign in. **+ Add listing** takes photos (the
 Website leads land in the CRM automatically and Devin gets a 7am email of who to contact.
 
 **One-time setup:**
-1. Supabase **SQL Editor** → paste `supabase/crm.sql` → Run.
+1. Supabase **SQL Editor** → paste `supabase/crm.sql` → Run, then `supabase/crm-v1.1.sql` (deals, showings, templates).
 2. Supabase **Project Settings → API Keys**: copy the **secret** key (`sb_secret_…`, or the legacy `service_role` key). Never put it in git or the browser.
 3. In SiteGround File Manager, create `tbg-secrets.php` **one level above** `public_html` (i.e. `/home/customer/www/bradygrouphomes.com/tbg-secrets.php`):
    ```php
@@ -91,6 +91,11 @@ If Supabase is down or not configured, lead emails still go out; check the PHP e
 - **Contacts → Import** loads iPhone (vCard) or Google (CSV) contacts. Duplicates are skipped.
 - **Pipeline**: drag cards between stages. Closing a deal moves the person to past clients.
 - On iPhone, open admin.bradygrouphomes.com in Safari → Share → **Add to Home Screen** to use it like an app.
+- **Deals** (on a contact): price, commission % and closing date. Today shows pending volume and expected commission; closing a deal makes them a past client.
+- **Send a template** (on a contact) opens Messages or Mail with a saved message filled in, and logs it. Edit templates under **Templates**.
+- **Showings** (on a buyer): address, how they liked it, and feedback.
+- **Past clients**: birthdays and home anniversaries for the coming week show on Today and in the 7am email; anyone not contacted in 90 days gets a check-in follow-up automatically.
+- **Stats**: leads by source, how far leads get, and closed volume, by month / year / all time.
 
 ## Still to fill in
 - `src/data/site.ts → tiktokProfile`: Devin's TikTok profile URL

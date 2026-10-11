@@ -1,0 +1,85 @@
+---
+// Templates screen: edit the saved messages sent from a contact's "Send a template".
+// Inline like the rest of the admin. Reads window.TBG, loads its own data when opened.
+---
+<main class="main" id="v-templates" hidden>
+  <div class="head">
+    <div><div class="lbl eyebrow-opt" style="margin-bottom:14px">Saved messages</div><h1>Templates</h1></div>
+    <button class="btn" type="button" id="tp-add">+ New template</button>
+  </div>
+  <p class="hint">Write <b>{'{first_name}'}</b> where the contact's first name should go. Open a contact and tap <b>Send a template</b> to use one.</p>
+  <div id="tp-list"></div>
+</main>
+
+<style is:inline>
+.tp{display:grid;gap:12px;padding:20px 0;border-bottom:1px solid var(--gray)}
+.tp:first-child{border-top:1px solid var(--gray)}
+.tp-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+.tp .chips.seg{width:200px}
+.tp textarea{resize:vertical;line-height:1.5}
+.tp-foot{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.tp-foot .n{font-size:12px;color:var(--taupe);margin-left:auto}
+@media (max-width:760px){
+  #v-templates .head h1{display:none}
+  #v-templates .head{justify-content:flex-end}
+  .tp-top{grid-template-columns:1fr}.tp .chips.seg{width:100%}
+}
+</style>
+
+<script type="module" is:inline>
+const { sb, $, esc, toast, fail } = window.TBG;
+let tpls = [], delArm = null;
+
+async function load() {
+  const { data, error } = await sb.from('templates').select('*').order('sort').order('name');
+  if (error) { $('#tp-list').innerHTML = '<p class="hint">Templates aren’t set up yet. Run supabase/crm-v1.1.sql in Supabase.</p>'; return; }
+  tpls = data; render();
+}
+const seg = (on) => [['text', 'Text'], ['email', 'Email']].map(([v, l]) => `<button type="button" data-ch="${v}" aria-pressed="${v === on}">${l}</button>`).join('');
+function render() {
+  $('#tp-list').innerHTML = tpls.length ? tpls.map((t) => `
+    <form class="tp" data-id="${t.id}" novalidate>
+      <div class="tp-top">
+        <label class="fld"><span class="lbl">Name</span><input class="in" name="name" value="${esc(t.name)}"></label>
+        <div class="chips sm seg" data-channel="${t.channel}">${seg(t.channel)}</div>
+      </div>
+      <label class="fld" ${t.channel === 'email' ? '' : 'hidden'}><span class="lbl">Email subject</span><input class="in" name="subject" value="${esc(t.subject)}"></label>
+      <label class="fld"><span class="lbl">Message</span><textarea class="in" name="body" rows="4">${esc(t.body)}</textarea></label>
+      <div class="tp-foot"><button class="btn" type="submit">Save</button><button type="button" class="tlink muted" data-del>${delArm === t.id ? 'Click again to delete' : 'Delete'}</button><span class="n">${t.body.length} characters</span></div>
+    </form>`).join('') : '<p class="empty">No templates yet.</p>';
+}
+$('#tp-list').addEventListener('click', async (e) => {
+  const f = e.target.closest('.tp'); if (!f) return;
+  const ch = e.target.closest('[data-ch]');
+  if (ch) {
+    const box = f.querySelector('[data-channel]'); box.dataset.channel = ch.dataset.ch; box.innerHTML = seg(ch.dataset.ch);
+    f.elements.subject.closest('label').hidden = ch.dataset.ch !== 'email';
+  }
+  if (e.target.closest('[data-del]')) {
+    const id = f.dataset.id;
+    if (delArm !== id) { delArm = id; return render(); }
+    const { error } = await sb.from('templates').delete().eq('id', id);
+    if (error) return fail(error, 'Couldn’t delete');
+    delArm = null; tpls = tpls.filter((t) => t.id !== id); render(); toast('Template deleted');
+  }
+});
+$('#tp-list').addEventListener('input', (e) => {
+  if (e.target.name === 'body') e.target.closest('.tp').querySelector('.n').textContent = e.target.value.length + ' characters';
+});
+$('#tp-list').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target, id = f.dataset.id;
+  const row = { name: f.elements.name.value.trim(), channel: f.querySelector('[data-channel]').dataset.channel, subject: f.elements.subject.value.trim() || null, body: f.elements.body.value.trim() };
+  if (!row.name || !row.body) return toast('Add a name and a message');
+  const { data, error } = await sb.from('templates').update(row).eq('id', id).select().single();
+  if (error) return fail(error, 'Couldn’t save');
+  tpls = tpls.map((t) => (t.id === id ? data : t)); toast('Template saved');
+});
+$('#tp-add').addEventListener('click', async () => {
+  const { data, error } = await sb.from('templates').insert({ name: 'New template', channel: 'text', body: 'Hi {first_name}, ', sort: tpls.length + 1 }).select().single();
+  if (error) return fail(error, 'Couldn’t add');
+  tpls.push(data); render();
+  const f = $('#tp-list').lastElementChild; f.scrollIntoView({ behavior: 'smooth', block: 'center' }); f.elements.name.select();
+});
+document.addEventListener('tbg:view', (e) => { if (e.detail.view === 'templates') load(); });
+</script>
