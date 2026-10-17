@@ -2,7 +2,9 @@
 import Base from '../../layouts/Base.astro';
 import ListingGrid from '../../components/ListingGrid.astro';
 import LeadForm from '../../components/LeadForm.astro';
-import { AREAS, SITE, type Area } from '../../data/site';
+import Photo from '../../components/Photo.astro';
+import { getImage } from 'astro:assets';
+import { AREAS, SITE, PHOTO_SET, photoCredit, type Area } from '../../data/site';
 
 export function getStaticPaths() {
   return AREAS.map((a) => ({ params: { slug: a.slug }, props: { a } }));
@@ -19,8 +21,10 @@ const jsonLd = [
   { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [['Home', `${SITE.url}/`], ['Areas', `${SITE.url}/areas/`], [a.name, url]].map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) },
 ];
 const others = AREAS.filter((x) => x.slug !== a.slug);
+const photo = PHOTO_SET[a.slug];
+const og = photo ? (await getImage({ src: photo.src, width: 1200, format: 'jpg' })).src : undefined;
 ---
-<Base title={a.title} description={a.meta} active="Areas" jsonLd={jsonLd} image={a.photo}>
+<Base title={a.title} description={a.meta} active="Areas" jsonLd={jsonLd} image={og}>
   <nav class="wrap crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><a href="/areas/">Areas</a><span>/</span><span aria-current="page">{a.name}</span></nav>
 
   <section class="wrap split center" style="padding-top:40px;padding-bottom:80px">
@@ -30,7 +34,12 @@ const others = AREAS.filter((x) => x.slug !== a.slug);
       <p class="lede" style="max-width:520px">{a.blurb}</p>
       <div class="btn-row"><a class="btn" href="#alerts">Get new listings</a><a class="btn btn-outline" href={SITE.phoneHref}>{SITE.phone}</a></div>
     </div>
-    {a.photo && <img src={a.photo} alt={`${a.name}, NC`} style="width:100%;aspect-ratio:4/3;object-fit:cover">}
+    {photo && (
+      <figure style="margin:0">
+        <div style="position:relative;aspect-ratio:4/3;background:var(--stone)"><Photo src={photo.src} alt={photo.subject} eager sizes="(max-width: 900px) 100vw, 50vw" /></div>
+        <figcaption class="photo-credit">{photo.subject}. {photo.creditRequired ? <a href={photo.url} target="_blank" rel="noopener license">{photoCredit(photo)}</a> : photoCredit(photo)}</figcaption>
+      </figure>
+    )}
   </section>
 
   <section class="wrap">

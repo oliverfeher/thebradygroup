@@ -1,9 +1,9 @@
 ---
-interface Props { featured?: boolean; cities?: string[]; limit?: number; exclude?: string }
-const { featured = false, cities = [], limit = 0, exclude = '' } = Astro.props;
+interface Props { featured?: boolean; fill?: boolean; cities?: string[]; limit?: number; exclude?: string }
+const { featured = false, fill = false, cities = [], limit = 0, exclude = '' } = Astro.props;
 ---
 <div class="listing-grid">
-  <div class="cards" data-listings data-featured={featured ? '1' : ''} data-cities={cities.join('|')} data-limit={String(limit)} data-exclude={exclude} aria-live="polite">
+  <div class="cards" data-listings data-featured={featured ? '1' : ''} data-fill={fill ? '1' : ''} data-cities={cities.join('|')} data-limit={String(limit)} data-exclude={exclude} aria-live="polite">
     {Array.from({ length: limit || 3 }).map(() => (
       <div class="card card-skel" aria-hidden="true"><div class="card-photo"></div><div class="card-body"><div class="skel w40"></div><div class="skel w80"></div><div class="skel w60"></div></div></div>
     ))}
@@ -19,7 +19,7 @@ const { featured = false, cities = [], limit = 0, exclude = '' } = Astro.props;
     const empty = el.nextElementSibling as HTMLElement;
     try {
       const rows = await fetchListings({
-        featured: d.featured === '1', cities: d.cities ? d.cities.split('|') : [],
+        featured: d.featured === '1', fill: d.fill === '1', cities: d.cities ? d.cities.split('|') : [],
         limit: Number(d.limit) || 0, exclude: d.exclude || '',
       });
       el.innerHTML = rows.map(cardHTML).join('');

@@ -1,3 +1,25 @@
+import goldsboroPhoto from '../assets/photos/goldsboro.jpg';
+import waynePhoto from '../assets/photos/wayne-county.jpg';
+import sjafbPhoto from '../assets/photos/seymour-johnson-afb.jpg';
+import wilsonPhoto from '../assets/photos/wilson.jpg';
+import smithfieldPhoto from '../assets/photos/smithfield.jpg';
+import raleighPhoto from '../assets/photos/raleigh.jpg';
+import headshotPhoto from '../assets/photos/devin-headshot.jpg';
+
+export const PHOTOS = { hero: goldsboroPhoto, headshot: headshotPhoto };
+
+// Area photos come from Wikimedia Commons. CC BY-SA ones need a visible credit (area page + /photo-credits/).
+export interface Photo { src: ImageMetadata; subject: string; author: string; license: string; url: string; creditRequired: boolean }
+export const PHOTO_SET: Record<string, Photo> = {
+  'goldsboro-nc': { src: goldsboroPhoto, subject: 'Walnut & George Streets, Goldsboro', author: 'Nyttend', license: 'Public domain', url: 'https://commons.wikimedia.org/wiki/File:Walnut_and_George_in_Goldsboro,_northern_side.jpg', creditRequired: false },
+  'wayne-county-nc': { src: waynePhoto, subject: 'Neuse River from Cliffs of the Neuse State Park', author: 'DiscoA340', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Overlook_of_the_Neuse_River_at_Cliffs_of_the_Neuse_State_Park.jpg', creditRequired: true },
+  'seymour-johnson-afb': { src: sjafbPhoto, subject: 'KC-135 Stratotanker at Seymour Johnson AFB', author: 'Staff Sgt. Mary McKnight, U.S. Air Force', license: 'Public domain', url: 'https://commons.wikimedia.org/wiki/File:A_KC-135_Stratotanker_taxis_on_the_flightline_on_Seymour_Johnson_Air_Force_Base.jpg', creditRequired: false },
+  'wilson-nc': { src: wilsonPhoto, subject: 'Vollis Simpson Whirligig Park, Wilson', author: 'Beyond My Ken', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Whirligig_Park,_Wilson,_North_Carolina_05.jpg', creditRequired: true },
+  'smithfield-nc': { src: smithfieldPhoto, subject: 'Downtown Smithfield at 3rd & Market', author: 'Ammodramus', license: 'CC0', url: 'https://commons.wikimedia.org/wiki/File:Smithfield_NC_3rd_x_Market_SW_corner_1.JPG', creditRequired: false },
+  'raleigh-nc': { src: raleighPhoto, subject: 'Downtown Raleigh skyline', author: 'Abhiram Juvvadi', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Raleigh_Skyline.jpg', creditRequired: true },
+};
+export const photoCredit = (p: Photo) => `Photo: ${p.author}, ${p.license}`;
+
 export const SITE = {
   name: 'The Brady Group',
   agent: 'Devin Brady',
@@ -65,7 +87,7 @@ export const MIL_POINTS = [
 
 export interface Area {
   slug: string; name: string; h1: string; title: string; meta: string; blurb: string;
-  cities: string[]; photo?: string; body: string[]; facts: [string, string][];
+  cities: string[]; body: string[]; facts: [string, string][];
   hoodsLabel: string; hoods: string[]; faq: [string, string];
 }
 
@@ -74,7 +96,7 @@ export const AREAS: Area[] = [
     slug: 'goldsboro-nc', name: 'Goldsboro', h1: 'Goldsboro, NC homes for sale', title: 'Goldsboro, NC Homes for Sale',
     meta: 'Homes for sale in Goldsboro, NC. Devin Brady, REALTOR® and Air Force veteran, helps buyers, sellers and military families across Goldsboro and Wayne County.',
     blurb: 'The Wayne County seat and home to Seymour Johnson AFB. Established neighborhoods, newer subdivisions and a wide range of price points.',
-    cities: ['Goldsboro'], photo: '/assets/hero.png',
+    cities: ['Goldsboro'],
     body: [
       'Goldsboro sits on the Neuse River in the middle of Wayne County, with US-70 running east to the coast and west to Raleigh. Buyers find older brick ranches near downtown, newer construction on the edges of town, and lake and golf communities nearby.',
       'With Seymour Johnson AFB on the southeast side of town, the market moves with PCS season. Homes near the base and along Berkeley Boulevard tend to see steady demand from military families.',

@@ -1,0 +1,20 @@
+---
+// Fills its positioned parent like a background image, but as a real <img> with AVIF/WebP srcset
+// (optimized at build). `eager` for the first visible photo on a page (the LCP image).
+import { Picture } from 'astro:assets';
+interface Props { src: ImageMetadata; alt?: string; sizes?: string; eager?: boolean; position?: string }
+const { src, alt = '', sizes = '100vw', eager = false, position = 'center' } = Astro.props;
+const widths = [480, 800, 1200, 1600, 2400].filter((w) => w <= src.width);
+---
+<Picture
+  src={src}
+  alt={alt}
+  formats={['avif', 'webp']}
+  widths={widths}
+  sizes={sizes}
+  loading={eager ? 'eager' : 'lazy'}
+  fetchpriority={eager ? 'high' : 'auto'}
+  decoding={eager ? 'sync' : 'async'}
+  class="fill-img"
+  style={`object-position:${position}`}
+/>

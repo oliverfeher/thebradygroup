@@ -5,5 +5,5 @@ export default defineConfig({
   site: 'https://bradygrouphomes.com',
   trailingSlash: 'always',
   build: { format: 'directory', inlineStylesheets: 'always' },
-  integrations: [sitemap({ filter: (p) => !p.includes('/admin') && !p.includes('/listing/') && !p.includes('/start/') })],
+  integrations: [sitemap({ filter: (p) => !p.includes('/admin') && !p.includes('/listing/') && !p.includes('/start/') && !p.includes('/photo-credits/') })],
 });

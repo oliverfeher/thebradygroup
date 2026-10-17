@@ -1,17 +1,27 @@
 ---
+// Self-hosted fonts (no render-blocking Google Fonts request); latin subset only.
+import '@fontsource/tinos/latin-400.css';
+import '@fontsource/tinos/latin-700.css';
+import '@fontsource/mulish/latin-400.css';
+import '@fontsource/mulish/latin-600.css';
+import '@fontsource/mulish/latin-700.css';
 import '../styles/global.css';
+import { getImage } from 'astro:assets';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { AREAS, SITE } from '../data/site';
+import { AREAS, SITE, PHOTOS } from '../data/site';
 
 interface Props { title: string; description: string; active?: string; jsonLd?: object[]; image?: string; noindex?: boolean; source?: string }
-const { title, description, active = '', jsonLd = [], image = '/assets/hero.png', noindex = false, source } = Astro.props;
+const { title, description, active = '', jsonLd = [], image, noindex = false, source } = Astro.props;
+// Social share image (default: the Goldsboro hero) and the agent photo for structured data, both resized at build.
+const ogImage = image ?? (await getImage({ src: PHOTOS.hero, width: 1200, format: 'jpg' })).src;
+const agentImage = (await getImage({ src: PHOTOS.headshot, width: 600, format: 'jpg' })).src;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title.includes('Brady Group') ? title : `${title} | The Brady Group`;
 const agent = {
   '@context': 'https://schema.org', '@type': 'RealEstateAgent', '@id': `${SITE.url}/#agent`,
   name: 'The Brady Group', url: SITE.url, telephone: '+1-316-730-3642', email: SITE.email,
-  image: `${SITE.url}/assets/devin-headshot.png`, logo: `${SITE.url}/assets/bg-primary.png`,
+  image: new URL(agentImage, SITE.url).href, logo: `${SITE.url}/assets/bg-primary.png`,
   address: { '@type': 'PostalAddress', addressLocality: 'Goldsboro', addressRegion: 'NC', addressCountry: 'US' },
   areaServed: AREAS.map((a) => ({ '@type': 'Place', name: `${a.name}, NC` })),
   employee: { '@type': 'Person', name: SITE.agent, jobTitle: 'REALTOR®' },
@@ -32,12 +42,9 @@ const agent = {
   <meta property="og:title" content={fullTitle}>
   <meta property="og:description" content={description}>
   <meta property="og:url" content={canonical}>
-  <meta property="og:image" content={new URL(image, Astro.site).href}>
+  <meta property="og:image" content={new URL(ogImage, Astro.site).href}>
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
   <script type="application/ld+json" set:html={JSON.stringify([agent, ...jsonLd])} />
   <script is:inline>
     // First-touch lead source (kept 90 days) so CRM leads show where they came from.

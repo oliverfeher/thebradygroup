@@ -24,8 +24,7 @@ import Base from '../../layouts/Base.astro';
 </Base>
 
 <script>
-  import { supabase } from '../../lib/supabase';
-  import { esc, money, fetchListings, cardHTML, type Listing } from '../../lib/listings';
+  import { esc, money, fetchListings, fetchListing, cardHTML, type Listing } from '../../lib/listings';
   const root = document.getElementById('listing')!;
   const id = new URLSearchParams(location.search).get('id') || '';
 
@@ -86,8 +85,8 @@ import Base from '../../layouts/Base.astro';
 
   (async () => {
     if (!id) return notFound();
-    const { data, error } = await supabase.from('listings').select('*').eq('id', id).maybeSingle();
-    if (error || !data) notFound(); else render(data as Listing);
+    const data = await fetchListing(id).catch(() => null);
+    if (!data) notFound(); else render(data);
     const more = await fetchListings({ exclude: id, limit: 3 }).catch(() => []);
     if (more.length) document.getElementById('more')!.innerHTML = more.map(cardHTML).join('');
     else document.getElementById('more-wrap')!.hidden = true;

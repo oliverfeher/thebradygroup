@@ -6,7 +6,7 @@ const { active = '' } = Astro.props;
 <div class="topbar"><div class="wrap topbar-in"><span>Eastern NC's military &amp; relocation real estate resource</span><nav aria-label="Social">{SITE.socials.filter(([, u]) => u).map(([l, u]) => <a href={u} target="_blank" rel="noopener">{l}</a>)}</nav></div></div>
 <header class="nav">
   <div class="wrap nav-in">
-    <a href="/" class="nav-logo" aria-label="The Brady Group, home"><img src="/assets/bg-primary.png" alt="The Brady Group" height="56"></a>
+    <a href="/" class="nav-logo" aria-label="The Brady Group, home"><img src="/assets/bg-primary.png" alt="The Brady Group" width="394" height="203"></a>
     <nav class="nav-links" id="nav-links" aria-label="Main">
       {NAV.map(([label, href]) => <a href={href} aria-current={label === active ? 'page' : undefined}>{label}</a>)}
     </nav>

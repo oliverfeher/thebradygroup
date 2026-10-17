@@ -1,7 +1,8 @@
 ---
 import { SITE } from '../data/site';
-interface Props { limit?: number }
-const { limit = 8 } = Astro.props;
+// Hidden unless at least `min` visible videos exist, so a lone placeholder never shows.
+interface Props { limit?: number; min?: number }
+const { limit = 8, min = 1 } = Astro.props;
 ---
 <section class="rule-top" id="tiktok" hidden>
   <div class="wrap section">
@@ -9,17 +10,18 @@ const { limit = 8 } = Astro.props;
       <div class="stack" style="gap:18px"><p class="eyebrow">On TikTok</p><h2 class="h2">Watch Devin</h2></div>
       <a class="btn" href={SITE.tiktokProfile} target="_blank" rel="noopener">Follow on TikTok ↗</a>
     </div>
-    <div class="tt-row" data-limit={String(limit)}></div>
+    <div class="tt-row" data-limit={String(limit)} data-min={String(min)}></div>
   </div>
 </section>
 <script>
-  import { supabase } from '../lib/supabase';
+  import { select } from '../lib/supabase';
   import { esc } from '../lib/listings';
   const sec = document.getElementById('tiktok')!;
   const row = sec.querySelector<HTMLElement>('.tt-row')!;
-  supabase.from('videos').select('url,caption,views,thumb').eq('visible', true).order('sort').limit(Number(row.dataset.limit) || 8)
-    .then(({ data, error }) => {
-      if (error || !data?.length) return;
+  type Video = { url: string; caption: string | null; views: string | null; thumb: string | null };
+  select<Video>('videos', `select=url,caption,views,thumb&visible=eq.true&order=sort&limit=${Number(row.dataset.limit) || 8}`)
+    .then((data) => {
+      if (data.length < (Number(row.dataset.min) || 1)) return;
       row.innerHTML = data.map((v) => `
         <a class="tt" href="${esc(v.url)}" target="_blank" rel="noopener">
           <span class="tt-thumb">${v.thumb ? `<img src="${esc(v.thumb)}" alt="" loading="lazy">` : ''}
@@ -29,5 +31,6 @@ const { limit = 8 } = Astro.props;
           <span class="tt-cap">${esc(v.caption || 'Watch on TikTok')}</span>
         </a>`).join('');
       sec.hidden = false;
-    });
+    })
+    .catch((e) => console.warn(e));
 </script>

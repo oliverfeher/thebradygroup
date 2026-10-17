@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { select } from './supabase';
 
 export interface Listing {
   id: string; status: string; price: number; street: string; city: string;
@@ -16,18 +16,25 @@ export const specs = (l: Listing) => [
 ].filter(Boolean).join(' · ');
 export const isActive = (l: Listing) => l.status === 'Just listed' || l.status === 'For sale';
 
-export async function fetchListings(o: { featured?: boolean; cities?: string[]; limit?: number; exclude?: string } = {}) {
-  let q = supabase.from('listings').select('*').order('created_at', { ascending: false });
-  if (o.cities?.length) q = q.or(o.cities.map((c) => `city.ilike.*${c}*`).join(','));
-  const { data, error } = await q;
-  if (error) throw error;
-  let rows = ((data || []) as Listing[]).filter((l) => l.id !== o.exclude)
+// featured: homepage picks (or active listings if none are featured).
+// fill: top up to `limit` with other listings that have photos (e.g. recent sales) so the row is never sparse.
+export async function fetchListings(o: { featured?: boolean; fill?: boolean; cities?: string[]; limit?: number; exclude?: string } = {}) {
+  let query = 'select=*&order=created_at.desc';
+  if (o.cities?.length) query += '&or=(' + o.cities.map((c) => `city.ilike.*${encodeURIComponent(c)}*`).join(',') + ')';
+  const all = (await select<Listing>('listings', query)).filter((l) => l.id !== o.exclude)
     .sort((a, b) => (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9));
+  let rows = all;
   if (o.featured) {
-    const f = rows.filter((l) => l.featured);
-    rows = f.length ? f : rows.filter(isActive);
+    const f = all.filter((l) => l.featured);
+    rows = f.length ? f : all.filter(isActive);
+    if (o.fill && o.limit) rows = [...rows, ...all.filter((l) => !rows.includes(l) && l.photos?.length)];
   }
   return o.limit ? rows.slice(0, o.limit) : rows;
+}
+
+export async function fetchListing(id: string) {
+  const [row] = await select<Listing>('listings', `select=*&id=eq.${encodeURIComponent(id)}`);
+  return row ?? null;
 }
 
 export function cardHTML(l: Listing) {

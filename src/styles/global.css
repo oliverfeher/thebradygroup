@@ -81,7 +81,7 @@ input, select, textarea, button { font: inherit; color: inherit; }
 /* hero */
 .hero { position: relative; min-height: clamp(560px, 72vh, 760px); background: var(--brown) center 60% / cover no-repeat; display: flex; align-items: flex-end; }
 .hero.short { min-height: 420px; }
-.hero > .wrap { width: 100%; padding-top: 48px; padding-bottom: clamp(24px, 5vw, 64px); }
+.hero > .wrap { position: relative; z-index: 1; width: 100%; padding-top: 48px; padding-bottom: clamp(24px, 5vw, 64px); }
 .hero-panel { max-width: 620px; background: rgba(73, 66, 62, .85); color: var(--ivory); padding: clamp(28px, 4vw, 48px); display: grid; gap: 22px; }
 .hero-panel .eyebrow { color: var(--ivory); }
 .hero-panel h1 { margin: 0; font: 400 clamp(38px, 5vw, 56px)/1.02 var(--serif); text-transform: uppercase; letter-spacing: .02em; text-wrap: balance; }
@@ -122,7 +122,7 @@ input, select, textarea, button { font: inherit; color: inherit; }
 
 /* split photo */
 .photo-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); border-top: 1px solid var(--gray); }
-.photo-split .photo { min-height: 520px; background: var(--brown) center 22% / cover no-repeat; }
+.photo-split .photo { position: relative; overflow: hidden; min-height: 520px; background: var(--brown); }
 .photo-split .text { padding: clamp(56px, 7vw, 104px) clamp(24px, 6vw, 88px); display: grid; gap: 24px; align-content: center; max-width: 720px; }
 
 /* steps */
@@ -203,7 +203,7 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .detail-facts dd { margin: 0; font: 400 30px/1 var(--serif); letter-spacing: .06em; }
 .detail-facts dt { font: 700 11px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); order: 2; }
 .agent-box { background: var(--navy); color: var(--ivory); padding: 28px; display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; align-items: center; }
-.agent-box .photo { width: 72px; height: 72px; background: var(--brown) url(/assets/devin-headshot.png) center 20% / cover; }
+.agent-box .photo { width: 72px; height: 72px; background: var(--brown) url(/assets/devin-avatar.jpg) center / cover; }
 .agent-box a { color: var(--ivory); border-bottom: 1px solid var(--gray); padding-bottom: 3px; font: 700 12px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
 .agent-box a:hover { text-decoration: none; border-color: var(--ivory); }
 
@@ -257,8 +257,8 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .comm a { display: grid; gap: 14px; color: var(--ink); }
 .comm a:hover { text-decoration: none; }
 .comm a:hover .name { color: var(--navy); }
-.comm .ph { position: relative; aspect-ratio: 4 / 3; background: var(--stone) center / cover no-repeat; }
-.comm .drive { position: absolute; top: 14px; right: 14px; background: var(--navy); color: var(--ivory); padding: 8px 10px; font: 700 10px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
+.comm .ph { overflow: hidden; position: relative; aspect-ratio: 4 / 3; background: var(--stone) center / cover no-repeat; }
+.comm .drive { z-index: 1; position: absolute; top: 14px; right: 14px; background: var(--navy); color: var(--ivory); padding: 8px 10px; font: 700 10px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
 .comm .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .comm .name { font: 400 24px/1.1 var(--serif); text-transform: uppercase; letter-spacing: .05em; }
 .comm .county { font: 700 11px/1.3 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); margin-top: 6px; }
@@ -280,3 +280,8 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .reviews .stars { font: 400 16px/1 var(--serif); letter-spacing: .3em; color: var(--navy); }
 .reviews blockquote { margin: 0; font: 400 24px/1.3 var(--serif); text-wrap: pretty; }
 .reviews figcaption { font: 700 11px/1.4 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+
+/* photos (components/Photo.astro) fill a positioned parent like a background image */
+.fill-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.photo-credit { font-size: 12px; color: var(--taupe); margin: 8px 0 0; }
+.photo-credit a, .legal a { color: inherit; text-decoration: underline; }

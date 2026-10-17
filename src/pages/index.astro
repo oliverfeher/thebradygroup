@@ -3,47 +3,74 @@ import Base from '../layouts/Base.astro';
 import ListingGrid from '../components/ListingGrid.astro';
 import TikTokRow from '../components/TikTokRow.astro';
 import LeadForm from '../components/LeadForm.astro';
-import { AREAS, SITE, STATS, STATS_NOTE, STATS_SOURCE, GUIDES, REVIEWS, DRIVE } from '../data/site';
+import Photo from '../components/Photo.astro';
+import { AREAS, SITE, STATS, STATS_NOTE, STATS_SOURCE, GUIDES, REVIEWS, DRIVE, PHOTOS, PHOTO_SET } from '../data/site';
 const book = SITE.bookingUrl || '/contact/';
-const tiles = [['Free guides', 'Relocation & VA', '#guides'], ['Explore', 'Communities', '#communities'], ['Sellers', 'Home value', '/sell/#valuation'], ['Military', 'VA & PCS moves', '/military/'], ['Watch', 'Devin on TikTok', '#tiktok']];
-const services = [
-  ['01', 'Buying', 'Private showings, local pricing knowledge and a clear plan from offer to keys.', 'Start your search', '/buy/'],
-  ['02', 'Selling', 'Your home is priced with care, professionally presented and negotiated with discipline.', 'Get a home value', '/sell/'],
-  ['03', 'Military moves', 'PCS to Seymour Johnson AFB with a veteran who knows VA loans and tight timelines.', 'Relocation guide', '/military/'],
+// Trust line under the hero: homes sold + volume from the verified track record.
+const stat = (label: string) => STATS.find(([, k]) => k === label)?.[0];
+const trust = ['U.S. Air Force veteran', `${stat('Homes sold')} homes sold`, `${stat('Total sales volume')} in sales`];
+const paths = [
+  ['Buying', 'Private showings, local pricing knowledge and a clear plan from offer to keys.', 'Start your search', '/buy/'],
+  ['Selling', 'Priced with care, professionally presented and negotiated with discipline.', 'What’s my home worth', '/sell/#valuation'],
+  ['PCS & military', 'Moving to Seymour Johnson AFB? A veteran who knows VA loans and tight report dates.', 'Military moves', '/military/'],
 ];
 ---
 <Base title="The Brady Group | Goldsboro, NC Real Estate" description="Devin Brady, REALTOR® and U.S. Air Force veteran, helps buyers, sellers and military families in Goldsboro, Wayne County, Seymour Johnson AFB and the Triangle.">
-  <section class="hero" style="background-image:url(/assets/hero.png)">
+  <section class="hero hero-home">
+    <Photo src={PHOTOS.hero} eager position="center 45%" />
     <div class="wrap">
       <div class="hero-panel">
-        <p class="eyebrow">Devin Brady, REALTOR® · Goldsboro, NC</p>
-        <h1>Eastern North Carolina homes, handled with care.</h1>
+        <p class="eyebrow">Goldsboro · Seymour Johnson AFB · The Triangle</p>
+        <h1>Goldsboro real estate, from an Air Force veteran.</h1>
+        <p class="hero-sub">Buying, selling or on orders, Devin Brady gives you straight answers and a clear plan.</p>
         <div class="btn-row">
-          <a class="btn" href="/listings/">View listings</a>
-          <a class="btn btn-outline" href="/sell/#valuation">What's my home worth</a>
+          <a class="btn" href={SITE.phoneHref}>Call or text Devin</a>
+          <a class="btn btn-outline" href="#guides">Get the free guides</a>
         </div>
+        <p class="trust">{trust.join(' · ')}</p>
       </div>
     </div>
   </section>
 
-  <nav class="rule-bottom" aria-label="Quick links" style="border-bottom:1px solid var(--gray)">
-    <div class="wrap tiles">{tiles.map(([k, v, href]) => <a href={href}><span class="eyebrow" style="font-size:11px">{k}</span><span class="v">{v}<span aria-hidden="true">→</span></span></a>)}</div>
-  </nav>
+  <section class="wrap section paths" aria-label="How Devin can help">
+    <div class="steps">
+      {paths.map(([t, d, cta, href]) => (
+        <a class="step path" href={href}><h2>{t}</h2><p>{d}</p><span class="link">{cta} →</span></a>
+      ))}
+    </div>
+  </section>
+
+  <section class="navy" id="guides" style="scroll-margin-top:24px">
+    <div class="wrap section" style="display:grid;gap:48px">
+      <div class="split" style="align-items:end;gap:24px 80px">
+        <div class="stack" style="gap:18px"><p class="eyebrow">Free guides</p><h2 class="h2">Moving here? Start with these.</h2></div>
+        <p class="body" style="max-width:520px">Two guides from Devin. Enter your name and email and both download instantly.</p>
+      </div>
+      <div class="guides">
+        {GUIDES.map((g) => (
+          <div class="guide">
+            <div class="cover"><img src="/assets/bg-primary.png" alt="" width="39" height="20" />{g.short}</div>
+            <div class="stack" style="gap:10px"><h3>{g.title}</h3><p>{g.desc}</p><a class="link dl" href={g.file} download hidden data-guide-dl>Download PDF ↓</a></div>
+          </div>
+        ))}
+      </div>
+      <div class="guide-form"><LeadForm kind="guide" /></div>
+    </div>
+  </section>
 
   <section class="wrap section">
     <div class="head-row">
-      <div class="stack" style="gap:18px"><p class="eyebrow">Featured</p><h2 class="h2">Current listings</h2></div>
+      <div class="stack" style="gap:18px"><p class="eyebrow">Listings &amp; recent sales</p><h2 class="h2">Devin's homes</h2></div>
       <a class="link" href="/listings/">All listings →</a>
     </div>
-    <ListingGrid featured limit={3} />
+    <ListingGrid featured fill limit={3} />
   </section>
 
-  <TikTokRow />
-
   <section class="photo-split">
-    <div class="photo" style="background-image:url(/assets/devin-headshot.png)" role="img" aria-label="Devin Brady"></div>
+    <div class="photo"><Photo src={PHOTOS.headshot} alt="Devin Brady" sizes="(max-width: 900px) 100vw, 50vw" position="center 22%" /></div>
     <div class="text">
-      <h2 class="h2">Meet Devin Brady</h2>
+      <p class="eyebrow">Meet Devin</p>
+      <h2 class="h2">A local agent who's been on orders</h2>
       <p class="body">Devin is a REALTOR® and U.S. Air Force veteran based in Goldsboro. He works with buyers, sellers and military families across Wayne County and the Triangle.</p>
       <p class="body">Every home is priced with care, presented properly and negotiated with discipline. You'll always know where things stand.</p>
       <div><a class="link" href="/about/">About The Brady Group →</a></div>
@@ -57,16 +84,17 @@ const services = [
     </div>
   </section>
 
-  <section class="navy">
-    <div class="wrap section">
-      <h2 class="h2" style="margin-bottom:56px">How we help</h2>
-      <div class="steps">
-        {services.map(([n, t, d, cta, href]) => (
-          <div class="step"><div class="n">{n}</div><h3 style="font-size:30px">{t}</h3><p>{d}</p><div><a class="link" href={href}>{cta} →</a></div></div>
-        ))}
+  {REVIEWS.length > 0 && (
+    <section class="wrap section rule-top">
+      <div class="head-row">
+        <div class="stack" style="gap:18px"><p class="eyebrow">Reviews</p><h2 class="h2">What clients say</h2></div>
+        {SITE.googleReviewsUrl && <a class="link" href={SITE.googleReviewsUrl} target="_blank" rel="noopener">All reviews on Google ↗</a>}
       </div>
-    </div>
-  </section>
+      <div class="reviews">{REVIEWS.map((r) => <figure><div class="stars" aria-label="5 stars">★★★★★</div><blockquote>{r.q}</blockquote><figcaption>{r.who}</figcaption></figure>)}</div>
+    </section>
+  )}
+
+  <TikTokRow min={3} />
 
   <section class="rule-top" id="communities">
     <div class="wrap section">
@@ -77,52 +105,46 @@ const services = [
       <div class="comm">
         {AREAS.map((a) => (
           <a href={`/areas/${a.slug}/`}>
-            <div class="ph" style={a.photo ? `background-image:url(${a.photo})` : ''}><span class="drive">{DRIVE[a.slug]?.[0]}</span></div>
+            <div class="ph">{PHOTO_SET[a.slug] && <Photo src={PHOTO_SET[a.slug].src} alt="" sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 33vw" />}<span class="drive">{DRIVE[a.slug]?.[0]}</span></div>
             <div class="row"><div><div class="name">{a.name}</div><div class="county">{DRIVE[a.slug]?.[1]}</div></div><span aria-hidden="true" style="color:var(--navy);font-size:18px">→</span></div>
           </a>
         ))}
       </div>
+      <p class="photo-credit" style="margin-top:28px">Area photos via Wikimedia Commons. <a href="/photo-credits/">Photo credits</a></p>
     </div>
   </section>
 
-  <section class="navy" id="guides" style="scroll-margin-top:24px">
-    <div class="wrap section" style="display:grid;gap:48px">
-      <div class="split" style="align-items:end;gap:24px 80px">
-        <div class="stack" style="gap:18px"><p class="eyebrow">Free guides</p><h2 class="h2">Moving here? Start with these.</h2></div>
-        <p class="body" style="max-width:520px">Two guides from Devin. Enter your name and email and both download instantly.</p>
+  <section class="navy">
+    <div class="wrap section cta-final">
+      <div class="stack" style="gap:18px"><p class="eyebrow">Let's make your move happen</p><h2 class="h2">Work with The Brady Group</h2></div>
+      <div class="stack" style="gap:24px">
+        <p class="body">Buying, selling or on orders, a 15-minute call is the fastest way to a clear plan.</p>
+        <div class="btn-row"><a class="btn" href={SITE.phoneHref}>Call or text {SITE.phone}</a><a class="btn btn-outline" href={book} target={SITE.bookingUrl ? '_blank' : undefined}>{SITE.bookingUrl ? 'Schedule a call' : 'Send a message'}</a></div>
       </div>
-      <div class="guides">
-        {GUIDES.map((g) => (
-          <div class="guide">
-            <div class="cover"><img src="/assets/bg-primary.png" alt="" />{g.short}</div>
-            <div class="stack" style="gap:10px"><h3>{g.title}</h3><p>{g.desc}</p><a class="link dl" href={g.file} download hidden data-guide-dl>Download PDF ↓</a></div>
-          </div>
-        ))}
-      </div>
-      <div class="guide-form"><LeadForm kind="guide" /></div>
-    </div>
-  </section>
-
-  {REVIEWS.length > 0 && (
-    <section class="wrap section">
-      <div class="head-row">
-        <div class="stack" style="gap:18px"><p class="eyebrow">Google reviews</p><h2 class="h2">What clients say</h2></div>
-        {SITE.googleReviewsUrl && <a class="link" href={SITE.googleReviewsUrl} target="_blank" rel="noopener">All reviews on Google ↗</a>}
-      </div>
-      <div class="reviews">{REVIEWS.map((r) => <figure><div class="stars" aria-label="5 stars">★★★★★</div><blockquote>{r.q}</blockquote><figcaption>{r.who}</figcaption></figure>)}</div>
-    </section>
-  )}
-
-  <section class="photo-split navy" style="border-top:0">
-    <div class="photo" style="background-image:url(/assets/devin-headshot.png);min-height:440px" role="img" aria-label="Devin Brady"></div>
-    <div class="text">
-      <p class="eyebrow">Let's make your move happen</p>
-      <h2 class="h2">Work with The Brady Group</h2>
-      <p class="body">Buying, selling or on orders, a 15-minute call is the fastest way to a clear plan.</p>
-      <div class="btn-row"><a class="btn" href={book} target={SITE.bookingUrl ? '_blank' : undefined}>Schedule a call</a><a class="btn btn-outline" href={SITE.phoneHref}>{SITE.phone}</a></div>
     </div>
   </section>
 </Base>
+
+<style>
+  .hero-home { min-height: clamp(560px, 78vh, 800px); }
+  .hero-sub { margin: 0; font-size: 17px; line-height: 1.55; color: var(--ivory); max-width: 460px; }
+  .trust { margin: 4px 0 0; font: 700 11px/1.5 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--mist); }
+  .paths { padding-top: clamp(40px, 6vw, 72px); padding-bottom: clamp(40px, 6vw, 72px); }
+  .path { color: var(--ink); text-decoration: none; }
+  .path:hover { text-decoration: none; }
+  .path:hover h2 { color: var(--navy); }
+  .path h2 { margin: 0; font: 400 28px/1.1 var(--serif); text-transform: uppercase; letter-spacing: .04em; }
+  .path .link { justify-self: start; }
+  .cta-final { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 32px 88px; align-items: end; }
+  @media (max-width: 560px) {
+    .hero-home { min-height: 0; padding-top: 180px; }
+    .hero-home .hero-panel { padding: 24px; gap: 16px; }
+    .hero-home h1 { font-size: 34px; }
+    .hero-sub { font-size: 15px; }
+    .hero-home .btn-row .btn { flex: 1 1 100%; }
+    .path h2 { font-size: 24px; }
+  }
+</style>
 
 <script>
   document.addEventListener('lead:sent', (e) => {

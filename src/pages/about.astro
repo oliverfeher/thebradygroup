@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
-import { SITE } from '../data/site';
+import Photo from '../components/Photo.astro';
+import { SITE, PHOTOS } from '../data/site';
 const promises = [
   ['Priced with care', 'Pricing is based on recent local sales and a walk through the home, not an online estimate.'],
   ['Presented properly', 'Professional photography, clear listing copy and advice on what’s worth fixing before you list.'],
@@ -10,7 +11,7 @@ import Steps from '../components/Steps.astro';
 ---
 <Base title="About Devin Brady" active="About" description="Devin Brady is a REALTOR® and U.S. Air Force veteran in Goldsboro, NC, serving buyers, sellers and military families across Wayne County and the Triangle.">
   <section class="photo-split" style="border-top:0">
-    <div class="photo" style="background-image:url(/assets/devin-headshot.png);min-height:600px" role="img" aria-label="Devin Brady"></div>
+    <div class="photo" style="min-height:600px"><Photo src={PHOTOS.headshot} alt="Devin Brady" eager sizes="(max-width: 900px) 100vw, 50vw" position="center 22%" /></div>
     <div class="text">
       <p class="eyebrow">About</p>
       <h1 class="display">Devin Brady, REALTOR®</h1>
@@ -40,6 +41,6 @@ import Steps from '../components/Steps.astro';
 
   <section class="wrap" style="padding-top:80px;padding-bottom:80px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:32px">
     <div class="stack" style="gap:10px"><p class="eyebrow">Brokerage</p><p class="body">The Brady Group is brokered by {SITE.brokerage}.</p></div>
-    <img src="/assets/firm-nc.png" alt="The Firm NC" style="height:56px;width:auto">
+    <img src="/assets/firm-nc.png" alt="The Firm NC" width="309" height="144" loading="lazy" style="height:56px;width:auto">
   </section>
 </Base>
