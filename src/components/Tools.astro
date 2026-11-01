@@ -1,0 +1,311 @@
+---
+// Move-planning tools for military families: what BAH buys (VA $0 down), a PCS timeline from the
+// report date, and a commute map to Seymour Johnson AFB. Each one can be sent to Devin as a lead
+// (POST /api/lead.php, kind "tool") with the visitor's numbers in the message.
+import 'leaflet/dist/leaflet.css';
+import { BAH, BAH_YEAR, LOAN, COMMUTE, BASE_POINT, PCS_PLAN, SITE } from '../data/site';
+interface Props { heading?: string; intro?: string }
+const {
+  heading = 'Plan your move to Seymour Johnson',
+  intro = 'See what your BAH buys, map out your PCS timeline, and compare commutes to the base. When you’re ready, send it to Devin and he’ll text you back.',
+} = Astro.props;
+const groups: [string, string[]][] = [
+  ['Enlisted', ['E-1', 'E-2', 'E-3', 'E-4', 'E-5', 'E-6', 'E-7', 'E-8', 'E-9']],
+  ['Warrant officer', ['W-1', 'W-2', 'W-3', 'W-4', 'W-5']],
+  ['Officer', ['O-1', 'O-2', 'O-3', 'O-4', 'O-5', 'O-6', 'O-7']],
+  ['Officer, prior enlisted', ['O-1E', 'O-2E', 'O-3E']],
+];
+const data = { BAH, LOAN, COMMUTE, BASE: BASE_POINT, PLAN: PCS_PLAN };
+const maxMin = Math.max(...COMMUTE.map((c) => c.minutes));
+---
+<section class="wrap tools-sec" id="tools">
+  <div class="band tools" data-tools={JSON.stringify(data)}>
+    <div class="tools-head">
+      <div class="stack" style="gap:14px"><p class="eyebrow">Move-planning tools</p><h2 class="h2">{heading}</h2></div>
+      <p class="body">{intro}</p>
+    </div>
+
+    <div class="seg" role="tablist" aria-label="Tools">
+      <button type="button" role="tab" id="t-bah" aria-controls="p-bah" aria-selected="true"><span class="full">What BAH buys</span><span class="short">BAH</span></button>
+      <button type="button" role="tab" id="t-pcs" aria-controls="p-pcs" aria-selected="false" tabindex="-1"><span class="full">PCS timeline</span><span class="short">PCS plan</span></button>
+      <button type="button" role="tab" id="t-map" aria-controls="p-map" aria-selected="false" tabindex="-1"><span class="full">Commute map</span><span class="short">Map</span></button>
+    </div>
+
+    <!-- BAH → home price -->
+    <div class="pane" role="tabpanel" id="p-bah" aria-labelledby="t-bah">
+      <form class="ctrl" data-bah-form novalidate>
+        <label class="field"><span class="label">Pay grade</span>
+          <select id="bah-grade" name="grade">{groups.map(([g, list]) => <optgroup label={g}>{list.map((r) => <option selected={r === 'E-5'}>{r}</option>)}</optgroup>)}</select>
+        </label>
+        <fieldset class="chips"><legend class="label">Dependents</legend>
+          <label class="chip"><input type="radio" name="dep" value="with" checked><span>With dependents</span></label>
+          <label class="chip"><input type="radio" name="dep" value="without"><span>Without</span></label>
+        </fieldset>
+        <div class="field-row">
+          <label class="field"><span class="label">Interest rate %</span><input id="bah-rate" name="rate" type="number" inputmode="decimal" step="0.125" min="2" max="12" value={LOAN.rate}></label>
+          <label class="field"><span class="label">Add from savings / mo</span><input id="bah-extra" name="extra" type="number" inputmode="numeric" step="50" min="0" value="0"></label>
+        </div>
+        <label class="check"><input id="bah-exempt" type="checkbox" name="exempt"> I have a VA disability rating (no funding fee)</label>
+      </form>
+      <div class="result" aria-live="polite">
+        <p class="eyebrow">Homes up to, VA $0 down</p>
+        <p class="big" data-price>$0</p>
+        <dl class="breakdown">
+          <div><dt>{BAH_YEAR} BAH</dt><dd data-bah></dd></div>
+          <div><dt>Principal &amp; interest</dt><dd data-pi></dd></div>
+          <div><dt>Property tax</dt><dd data-tax></dd></div>
+          <div><dt>Insurance</dt><dd data-ins></dd></div>
+        </dl>
+        <p class="fine">Estimate, not a loan approval. Uses {BAH_YEAR} BAH for Seymour Johnson AFB, a 30-year VA loan, about {LOAN.taxRate}% property tax and ${LOAN.insurance}/mo insurance (Wayne County medians). A VA lender will confirm your numbers.</p>
+        <button class="btn" type="button" data-send="bah">Send this to Devin</button>
+      </div>
+    </div>
+
+    <!-- PCS timeline -->
+    <div class="pane" role="tabpanel" id="p-pcs" aria-labelledby="t-pcs" hidden>
+      <div class="ctrl">
+        <label class="field"><span class="label">Report no later than (RNLTD)</span><input id="pcs-date" type="date"></label>
+        <p class="lede" data-weeks></p>
+        <p class="fine">Most families close 1 to 2 weeks before reporting. Short on time? Devin can line up video tours and a lender this week.</p>
+      </div>
+      <div class="result">
+        <ol class="timeline" data-plan></ol>
+        <button class="btn" type="button" data-send="pcs">Send my plan to Devin</button>
+      </div>
+    </div>
+
+    <!-- Commute map -->
+    <div class="pane" role="tabpanel" id="p-map" aria-labelledby="t-map" hidden>
+      <div class="ctrl">
+        <p class="label">Drive time to Seymour Johnson AFB</p>
+        <ul class="commute">
+          {COMMUTE.map((c, i) => (
+            <li><a href={`/areas/${c.slug}/`} data-i={i}><span class="nm">{c.name}</span><span class="bar"><i style={`width:${Math.round((c.minutes / maxMin) * 100)}%`}></i></span><span class="tm">{c.label}</span></a></li>
+          ))}
+        </ul>
+        <p class="fine">Typical weekday drive times. Tap an area for homes and neighborhood details.</p>
+      </div>
+      <div class="result map-wrap">
+        <div class="map" id="commute-map" role="img" aria-label="Map of Goldsboro, Wayne County, Wilson, Smithfield and Raleigh with drive times to Seymour Johnson AFB"></div>
+        <button class="btn" type="button" data-send="map">Ask Devin about these areas</button>
+      </div>
+    </div>
+
+    <!-- Send to Devin -->
+    <form class="send" data-send-form hidden novalidate>
+      <div class="send-head"><p class="h3" style="color:var(--ivory)">Send it to Devin</p><p class="body" data-send-summary></p></div>
+      <div class="field-row">
+        <label class="field"><span class="label">Name *</span><input id="send-name" name="name" required autocomplete="name"></label>
+        <label class="field"><span class="label">Phone</span><input id="send-phone" name="phone" type="tel" autocomplete="tel"></label>
+        <label class="field"><span class="label">Email</span><input id="send-email" name="email" type="email" autocomplete="email"></label>
+      </div>
+      <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="form-err" role="alert" hidden></p>
+      <div class="btn-row"><button class="btn" type="submit">Send to Devin</button><button class="btn btn-outline" type="button" data-cancel>Cancel</button></div>
+    </form>
+    <div class="send-done" hidden role="status"><p class="h3" style="color:var(--ivory)">Sent. Devin will reach out soon.</p><p class="body">Need him now? Call or text <a href={SITE.phoneHref} style="color:var(--ivory);text-decoration:underline">{SITE.phone}</a>.</p></div>
+  </div>
+</section>
+
+<style>
+  .tools-sec { padding-top: clamp(28px, 5vw, 64px); padding-bottom: clamp(28px, 5vw, 64px); scroll-margin-top: 90px; }
+  .tools { display: grid; gap: 28px; }
+  .tools-head { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px 64px; align-items: end; }
+  .seg { display: flex; gap: 4px; padding: 5px; background: rgba(243, 241, 238, .1); border-radius: 999px; overflow-x: auto; scrollbar-width: none; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg button { flex: 1 0 auto; border: 0; background: none; color: var(--mist); padding: 13px 18px; border-radius: 999px; font: 700 15px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+  .seg button[aria-selected="true"] { background: var(--ivory); color: var(--navy); }
+  .seg .short { display: none; }
+  .pane { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+  .pane[hidden] { display: none; }
+  .ctrl { display: grid; gap: 18px; align-content: start; }
+  .ctrl select { appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23102756' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 16px center; padding-right: 40px; }
+  .chips :global(.chip span) { background: transparent; border-color: rgba(243, 241, 238, .4); color: var(--ivory); }
+  .chips :global(.chip input:checked + span) { background: var(--ivory); border-color: var(--ivory); color: var(--navy); }
+  .check { display: flex; gap: 10px; align-items: center; font-size: 15px; color: var(--ivory); cursor: pointer; }
+  .check input { width: 20px; height: 20px; accent-color: var(--ivory); }
+  .result { background: var(--ivory); color: var(--ink); border-radius: var(--r); padding: clamp(20px, 3vw, 32px); display: grid; gap: 16px; align-content: start; }
+  .result .eyebrow { color: var(--taupe); }
+  .big { margin: 0; font: 400 clamp(52px, 7vw, 88px)/1 var(--serif); color: var(--navy); letter-spacing: -.02em; font-variant-numeric: lining-nums; }
+  .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: 8px; margin: 0; }
+  .breakdown div { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 14px; display: grid; gap: 6px; }
+  .breakdown dt { font: 700 11px/1.2 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+  .breakdown dd { margin: 0; font: 700 18px/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .fine { margin: 0; font-size: 13px; line-height: 1.55; color: var(--taupe); }
+  .ctrl .fine, .ctrl .lede { color: var(--mist); }
+  .ctrl .lede { font-family: var(--serif); font-size: 26px; line-height: 1.25; color: var(--ivory); }
+  .result .btn { justify-self: start; background: var(--navy); color: var(--ivory); border-color: var(--navy); }
+  .result .btn:hover { background: var(--navy-2); }
+  .timeline { list-style: none; margin: 0; padding: 0; display: grid; }
+  .timeline :global(li) { display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.45; }
+  .timeline :global(li:last-child) { border-bottom: 0; }
+  .timeline :global(b) { font: 700 13px/1.45 var(--sans); color: var(--navy); font-variant-numeric: tabular-nums; }
+  .timeline :global(li.past) { color: var(--gray); }
+  .timeline :global(li.past b) { color: var(--gray); }
+  .timeline :global(li.now) { background: var(--paper); margin: 0 -12px; padding: 13px 12px; border-radius: var(--r-sm); border-bottom-color: transparent; }
+  .timeline :global(li.now span::after) { content: 'You are here'; margin-left: 8px; background: var(--navy); color: var(--ivory); padding: 4px 8px; border-radius: 999px; font: 700 11px/1 var(--sans); white-space: nowrap; vertical-align: 2px; }
+  .commute { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .commute a { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 70px; gap: 12px; align-items: center; padding: 10px 12px; margin: 0 -12px; border-radius: var(--r-sm); color: var(--ivory); text-decoration: none; font-size: 15px; }
+  .commute a:hover, .commute a.on { background: rgba(243, 241, 238, .1); }
+  .commute .bar { height: 8px; background: rgba(243, 241, 238, .15); border-radius: 999px; overflow: hidden; }
+  .commute .bar i { display: block; height: 100%; background: var(--ivory); border-radius: 999px; }
+  .commute .tm { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .map-wrap { padding: 10px; }
+  .map { height: clamp(320px, 42vw, 440px); border-radius: var(--r-sm); background: var(--stone); z-index: 0; }
+  .map-wrap .btn { margin: 6px 10px 10px; }
+  .send { display: grid; gap: 18px; border-top: 1px solid rgba(201, 196, 189, .35); padding-top: 24px; }
+  .send-head { display: grid; gap: 6px; }
+  .send-head .body { color: var(--mist); }
+  .send-done { border-top: 1px solid rgba(201, 196, 189, .35); padding-top: 24px; display: grid; gap: 8px; }
+  @media (max-width: 860px) { .pane { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) {
+    .seg button { flex: 1 1 0; padding: 12px 8px; font-size: 14px; }
+    .seg .full { display: none; }
+    .seg .short { display: inline; }
+    .commute a { grid-template-columns: minmax(0, 1fr) 70px; }
+    .commute .bar { display: none; }
+  }
+</style>
+
+<style is:global>
+  /* Leaflet markers, styled in brand colors */
+  .tbg-pin { background: var(--ivory); color: var(--navy); border: 2px solid var(--navy); border-radius: 999px; padding: 5px 9px; font: 700 12px/1 Mulish, sans-serif; white-space: nowrap; box-shadow: 0 4px 12px rgba(16, 39, 86, .25); transform: translate(-50%, -50%); display: inline-block; }
+  .tbg-pin.base { background: var(--navy); color: var(--ivory); }
+  .tbg-pin.on { background: var(--navy); color: var(--ivory); }
+  .leaflet-div-icon.tbg-icon { background: none; border: 0; }
+  /* neutral, brand-friendly basemap */
+  #commute-map .leaflet-tile-pane { filter: grayscale(1) sepia(.12) contrast(.92) brightness(1.04); }
+</style>
+
+<script>
+  type Data = {
+    BAH: Record<string, [number, number]>;
+    LOAN: { rate: number; years: number; fundingFee: number; taxRate: number; insurance: number };
+    COMMUTE: { slug: string; name: string; lat: number; lng: number; minutes: number; label: string }[];
+    BASE: { name: string; lat: number; lng: number };
+    PLAN: [number, string][];
+  };
+  document.querySelectorAll<HTMLElement>('[data-tools]').forEach((root) => {
+    const D: Data = JSON.parse(root.dataset.tools!);
+    const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const usd = (n: number) => '$' + Math.round(n).toLocaleString('en-US');
+    const state: Record<string, string> = {};
+
+    /* tabs */
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+    const select = (t: HTMLButtonElement, focus = false) => {
+      tabs.forEach((x) => { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; root.querySelector<HTMLElement>('#' + x.getAttribute('aria-controls'))!.hidden = !on; });
+      if (focus) t.focus();
+      if (t.id === 't-map') initMap();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(t));
+      t.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length], true); }
+      });
+    });
+
+    /* BAH → max price where P&I + tax + insurance = BAH (+ extra) */
+    const form = $<HTMLFormElement>('[data-bah-form]');
+    const calc = () => {
+      const grade = (form.elements.namedItem('grade') as HTMLSelectElement).value;
+      const dep = (form.querySelector('input[name=dep]:checked') as HTMLInputElement).value;
+      const rate = Math.min(12, Math.max(2, Number((form.elements.namedItem('rate') as HTMLInputElement).value) || D.LOAN.rate));
+      const extra = Math.max(0, Number((form.elements.namedItem('extra') as HTMLInputElement).value) || 0);
+      const exempt = (form.elements.namedItem('exempt') as HTMLInputElement).checked;
+      const bah = D.BAH[grade][dep === 'with' ? 0 : 1];
+      const r = rate / 100 / 12, n = D.LOAN.years * 12, f = r / (1 - Math.pow(1 + r, -n));
+      const fee = 1 + (exempt ? 0 : D.LOAN.fundingFee / 100);
+      const budget = bah + extra - D.LOAN.insurance;
+      const price = Math.max(0, Math.floor(budget / (fee * f + D.LOAN.taxRate / 100 / 12) / 1000) * 1000);
+      $('[data-price]').textContent = usd(price);
+      $('[data-bah]').textContent = usd(bah) + '/mo';
+      $('[data-pi]').textContent = usd(price * fee * f) + '/mo';
+      $('[data-tax]').textContent = usd((price * D.LOAN.taxRate) / 100 / 12) + '/mo';
+      $('[data-ins]').textContent = usd(D.LOAN.insurance) + '/mo';
+      state.bah = `BAH calculator: ${grade} ${dep} dependents, BAH ${usd(bah)}/mo${extra ? ` + ${usd(extra)}/mo extra` : ''}, ${rate}%${exempt ? ', no funding fee' : ''} → homes up to about ${usd(price)} (VA $0 down).`;
+    };
+    form.addEventListener('input', calc); form.addEventListener('change', calc); form.addEventListener('submit', (e) => e.preventDefault()); calc();
+
+    /* PCS timeline */
+    const dateIn = $<HTMLInputElement>('#pcs-date');
+    const ymd = (d: Date) => d.toLocaleDateString('en-CA');
+    const def = new Date(); def.setDate(def.getDate() + 120); dateIn.value = ymd(def);
+    const plan = () => {
+      const rep = new Date((dateIn.value || ymd(def)) + 'T12:00'), now = new Date();
+      const weeks = Math.round((rep.getTime() - now.getTime()) / (7 * 864e5));
+      $('[data-weeks]').textContent = weeks > 0 ? `${weeks} week${weeks === 1 ? '' : 's'} until you report.` : 'Your report date has passed. Text Devin and he’ll help you catch up.';
+      let marked = false;
+      $('[data-plan]').innerHTML = D.PLAN.map(([w, t]) => {
+        const d = new Date(rep); d.setDate(d.getDate() - w * 7);
+        const past = d < now && w > 0, cls = past ? 'past' : !marked ? ((marked = true), 'now') : '';
+        return `<li class="${cls}"><b>${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</b><span>${t}</span></li>`;
+      }).join('');
+      state.pcs = `PCS timeline: reports ${rep.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} (${weeks} weeks out).`;
+    };
+    dateIn.addEventListener('change', plan); plan();
+
+    /* Commute map (Leaflet, loaded on first open) */
+    let map: any = null; const pins: HTMLElement[] = [];
+    state.map = 'Commute map: asking about areas near Seymour Johnson AFB.';
+    async function initMap() {
+      if (map) return void map.invalidateSize();
+      const mod = await import('leaflet');
+      const L: any = (mod as any).default ?? mod;
+      map = L.map($('#commute-map'), { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 16, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+      const icon = (html: string) => L.divIcon({ className: 'tbg-icon', html, iconSize: [0, 0] });
+      // Nudge labels that would overlap (Goldsboro sits next to the base).
+      const nudge: Record<string, string> = { Goldsboro: 'margin-top:-18px', Pikeville: 'margin-left:34px;margin-top:-14px' };
+      const pts: [number, number][] = [[D.BASE.lat, D.BASE.lng]];
+      L.marker([D.BASE.lat, D.BASE.lng], { icon: icon(`<span class="tbg-pin base" style="margin-top:14px">★ ${D.BASE.name}</span>`), keyboard: false }).addTo(map);
+      D.COMMUTE.forEach((c, i) => {
+        pts.push([c.lat, c.lng]);
+        L.polyline([[D.BASE.lat, D.BASE.lng], [c.lat, c.lng]], { color: '#102756', weight: 2, opacity: .35, dashArray: '4 6' }).addTo(map);
+        const short = c.name.split(' · ')[0];
+        const m = L.marker([c.lat, c.lng], { icon: icon(`<span class="tbg-pin" data-pin="${i}" style="${nudge[short] || ''}">${short} · ${c.label}</span>`), title: `${c.name}: ${c.label} to the base` }).addTo(map);
+        m.on('click', () => { location.href = `/areas/${c.slug}/`; });
+      });
+      map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+      root.querySelectorAll<HTMLElement>('[data-pin]').forEach((p) => (pins[Number(p.dataset.pin)] = p));
+    }
+    root.querySelectorAll<HTMLAnchorElement>('.commute a').forEach((a) => {
+      const on = (v: boolean) => { a.classList.toggle('on', v); pins[Number(a.dataset.i)]?.classList.toggle('on', v); };
+      a.addEventListener('mouseenter', () => on(true)); a.addEventListener('mouseleave', () => on(false));
+      a.addEventListener('focus', () => on(true)); a.addEventListener('blur', () => on(false));
+    });
+
+    /* Send to Devin */
+    const sendForm = $<HTMLFormElement>('[data-send-form]'), done = $('.send-done'), err = $('.send .form-err');
+    let which = 'bah';
+    root.querySelectorAll<HTMLButtonElement>('[data-send]').forEach((b) => b.addEventListener('click', () => {
+      which = b.dataset.send!;
+      $('[data-send-summary]').textContent = state[which];
+      sendForm.hidden = false; done.hidden = true; err.hidden = true;
+      sendForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => $<HTMLInputElement>('#send-name').focus({ preventScroll: true }), 300);
+    }));
+    $('[data-cancel]').addEventListener('click', () => (sendForm.hidden = true));
+    sendForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(sendForm)) as Record<string, string>;
+      const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+      if (!f.name?.trim()) return fail('Please add your name.');
+      if (!f.phone?.trim() && !f.email?.trim()) return fail('Add a phone number or email so Devin can reach you.');
+      let src = { source: '', detail: '' };
+      try { src = JSON.parse(localStorage.getItem('tbg_src') || '') || src; } catch {}
+      const btn = sendForm.querySelector<HTMLButtonElement>('[type=submit]')!; btn.disabled = true;
+      try {
+        const res = await fetch('/api/lead.php', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...f, kind: 'tool', interest: 'Military move', message: state[which], page: location.pathname, source: src.source, source_detail: src.detail }) });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || !out.ok) throw new Error();
+        sendForm.hidden = true; done.hidden = false;
+      } catch { fail('That didn’t send. Please call or text 316-730-3642.'); }
+      finally { btn.disabled = false; }
+    });
+  });
+</script>

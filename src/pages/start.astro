@@ -8,6 +8,7 @@ const paths: [string, string, string][] = [
   ['Buying', 'Start your home search', '/buy/'],
   ['Selling', 'What is my home worth?', '/sell/#valuation'],
   ['Military', 'PCSing to Seymour Johnson AFB', '/military/'],
+  ['Tools', 'What does my BAH buy?', '/#tools'],
   ['Listings', 'See homes for sale now', '/listings/'],
 ];
 ---
@@ -40,14 +41,14 @@ const paths: [string, string, string][] = [
 </Base>
 
 <style>
-  .start { display: grid; gap: 40px; }
-  .start-paths { display: grid; border-top: 1px solid var(--gray); }
-  .start-paths a { display: grid; gap: 10px; padding: 22px 0; border-bottom: 1px solid var(--gray); color: var(--navy); text-decoration: none; }
-  .start-paths .v { display: flex; justify-content: space-between; gap: 16px; font: 400 clamp(20px, 5vw, 26px)/1.2 var(--serif); text-transform: uppercase; letter-spacing: .04em; }
-  .start-paths a:hover .v { text-decoration: underline; }
-  .start-guides { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+  .start { display: grid; gap: 32px; }
+  .start-paths { display: grid; gap: 10px; }
+  .start-paths a { display: grid; gap: 6px; padding: 20px 22px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); color: var(--navy); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .start-paths a:hover { border-color: var(--navy); transform: translateY(-2px); }
+  .start-paths .v { display: flex; justify-content: space-between; gap: 16px; font: 400 clamp(22px, 5vw, 28px)/1.15 var(--serif); }
+  .start-guides { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
   .start-guides li { display: grid; gap: 6px; }
-  .start-guides strong { font: 400 20px/1.2 var(--serif); text-transform: uppercase; letter-spacing: .04em; }
+  .start-guides strong { font: 400 22px/1.2 var(--serif); }
 </style>
 
 <script>

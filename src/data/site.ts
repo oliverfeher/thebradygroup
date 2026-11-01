@@ -5,8 +5,8 @@ import wilsonPhoto from '../assets/photos/wilson.jpg';
 import smithfieldPhoto from '../assets/photos/smithfield.jpg';
 import raleighPhoto from '../assets/photos/raleigh.jpg';
 import headshotPhoto from '../assets/photos/devin-headshot.jpg';
-
-export const PHOTOS = { hero: goldsboroPhoto, headshot: headshotPhoto };
+import unionStationPhoto from '../assets/photos/union-station.jpg';
+import airmenPhoto from '../assets/photos/airmen-parade.jpg';
 
 // Area photos come from Wikimedia Commons. CC BY-SA ones need a visible credit (area page + /photo-credits/).
 export interface Photo { src: ImageMetadata; subject: string; author: string; license: string; url: string; creditRequired: boolean }
@@ -20,6 +20,51 @@ export const PHOTO_SET: Record<string, Photo> = {
 };
 export const photoCredit = (p: Photo) => `Photo: ${p.author}, ${p.license}`;
 
+// Site-wide photos. hero/military come from Wikimedia Commons too (credited on /photo-credits/).
+export const HERO_PHOTO: Photo = { src: unionStationPhoto, subject: 'Union Station, downtown Goldsboro', author: 'APK', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Goldsboro_Union_Station.jpg', creditRequired: true };
+export const MILITARY_PHOTO: Photo = { src: airmenPhoto, subject: 'Seymour Johnson airmen in the Goldsboro Veterans Day parade', author: 'A1C John Nieves Camacho, U.S. Air Force', license: 'Public domain', url: 'https://commons.wikimedia.org/wiki/File:U.S._Airmen_stationed_at_Seymour_Johnson_Air_Force_Base_march_in_a_Veterans_Day_parade_in_Goldsboro,_N.C.,_Nov._11,_2013_131111-F-YG094-269.jpg', creditRequired: false };
+export const PHOTOS = { hero: unionStationPhoto, headshot: headshotPhoto, military: airmenPhoto, goldsboro: goldsboroPhoto };
+
+/* ---------- Tools (home page + /military/) ---------- */
+// 2026 BAH, Seymour Johnson AFB MHA (DTMO rates effective Jan 1, 2026). Update every January.
+// [with dependents, without dependents], monthly USD.
+export const BAH_YEAR = 2026;
+export const BAH: Record<string, [number, number]> = {
+  'E-1': [1500, 1365], 'E-2': [1500, 1365], 'E-3': [1500, 1365], 'E-4': [1500, 1365], 'E-5': [1521, 1428],
+  'E-6': [1950, 1479], 'E-7': [2052, 1539], 'E-8': [2160, 1620], 'E-9': [2295, 1734],
+  'W-1': [1971, 1509], 'W-2': [2094, 1608], 'W-3': [2229, 1752], 'W-4': [2322, 1968], 'W-5': [2436, 2073],
+  'O-1E': [2067, 1551], 'O-2E': [2208, 1707], 'O-3E': [2340, 1944],
+  'O-1': [1578, 1476], 'O-2': [1947, 1542], 'O-3': [2226, 1794], 'O-4': [2472, 2052], 'O-5': [2649, 2109], 'O-6': [2667, 2208], 'O-7': [2685, 2244],
+};
+// Median assumptions for Wayne County / eastern NC (Oct 2026). The rate is editable on the page.
+export const LOAN = {
+  rate: 7.0,            // % APR, national avg 30-yr VA (~7.0% Oct 2026)
+  years: 30,
+  fundingFee: 2.15,     // % first-use VA funding fee, $0 down, financed (waived with a VA disability rating)
+  taxRate: 1.0,         // % of price per year (county $0.6259/$100; inside Goldsboro city limits ~$1.32/$100)
+  insurance: 150,       // $ per month homeowners insurance
+};
+// Map: approximate centers + drive time to Seymour Johnson AFB (same as DRIVE below).
+export const BASE_POINT = { name: 'Seymour Johnson AFB', lat: 35.3394, lng: -77.9606 };
+export const COMMUTE: { slug: string; name: string; lat: number; lng: number; minutes: number; label: string }[] = [
+  { slug: 'goldsboro-nc', name: 'Goldsboro', lat: 35.3849, lng: -77.9928, minutes: 10, label: '10 min' },
+  { slug: 'wayne-county-nc', name: 'Mount Olive · Wayne County', lat: 35.1971, lng: -78.0664, minutes: 25, label: '15–30 min' },
+  { slug: 'wayne-county-nc', name: 'Pikeville · Wayne County', lat: 35.4974, lng: -77.9836, minutes: 20, label: '15–30 min' },
+  { slug: 'wilson-nc', name: 'Wilson', lat: 35.7213, lng: -77.9155, minutes: 35, label: '~35 min' },
+  { slug: 'smithfield-nc', name: 'Smithfield', lat: 35.5085, lng: -78.3394, minutes: 40, label: '~40 min' },
+  { slug: 'raleigh-nc', name: 'Raleigh', lat: 35.7796, lng: -78.6382, minutes: 60, label: '~1 hr' },
+];
+// PCS plan: weeks before the report date.
+export const PCS_PLAN: [number, string][] = [
+  [12, 'Get your VA Certificate of Eligibility and talk to a VA lender'],
+  [10, 'Pick two or three areas by commute, schools and budget'],
+  [8, 'Video tours with Devin, or a house-hunting trip'],
+  [6, 'Make an offer'],
+  [4, 'Inspection, VA appraisal and final loan approval'],
+  [1, 'Close and get your keys'],
+  [0, 'Report to Seymour Johnson AFB'],
+];
+
 export const SITE = {
   name: 'The Brady Group',
   agent: 'Devin Brady',
@@ -32,10 +77,9 @@ export const SITE = {
   url: 'https://bradygrouphomes.com',
   // TODO: Devin's Zillow agent profile URL (leave '' to hide the link)
   zillowProfile: '',
-  // TODO: Devin's TikTok profile URL, e.g. https://www.tiktok.com/@handle
-  tiktokProfile: 'https://www.tiktok.com/',
+  tiktokProfile: 'https://www.tiktok.com/@ncrealtordev',
   // TODO: fill in; empty ones are hidden
-  socials: [['TikTok', 'https://www.tiktok.com/'], ['Instagram', ''], ['Facebook', ''], ['YouTube', '']] as [string, string][],
+  socials: [['TikTok', 'https://www.tiktok.com/@ncrealtordev'], ['Instagram', ''], ['Facebook', ''], ['YouTube', '']] as [string, string][],
   bookingUrl: '', // e.g. Calendly link; falls back to /contact/
   googleReviewsUrl: '',
 };
@@ -61,9 +105,10 @@ export const DRIVE: Record<string, [string, string]> = {
   'raleigh-nc': ['~1 hr to SJAFB', 'Wake County'],
 };
 
+// `active` on each page matches the first column.
 export const NAV = [
-  ['Listings', '/listings/'], ['Buy', '/buy/'], ['Sell', '/sell/'], ['Military', '/military/'],
-  ['Areas', '/areas/'], ['About', '/about/'], ['Contact', '/contact/'],
+  ['Buy', '/buy/'], ['Sell', '/sell/'], ['Military', '/military/'], ['Tools', '/#tools'],
+  ['Listings', '/listings/'], ['Areas', '/areas/'], ['About', '/about/'], ['Contact', '/contact/'],
 ] as const;
 
 export const BUY_STEPS = [

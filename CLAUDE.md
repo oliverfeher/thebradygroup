@@ -25,13 +25,14 @@ Built by Hustle Haus (info@hustle-haus.com). Designs were prototyped separately;
 - Sitemap via @astrojs/sitemap (excludes /admin, /listing/). `public/.htaccess`: HTTPS, non-www, /admin → subdomain, denies config.php.
 - Deploy: `.github/workflows/deploy.yml` (FTPS to SiteGround; secrets listed in README).
 
-## Brand rules (strict)
-- Colors: Navy #102756 (primary/actions), Brown #49423E (body), Taupe #6B6460 (labels), Gray #9A9591 (hairlines), Ivory #F3F1EE (ground), Paper #fbfaf8 (fields/panels), Black #040303 TEXT ONLY.
-- NO black backgrounds. No gradients, no emoji, square corners, hairline gray rules.
-- Type: Tinos (serif, uppercase, tracked) for headlines/prices; Mulish for body + uppercase tracked labels.
+## Brand rules
+- Colors (fixed): Navy #102756 (primary/actions), Brown #49423E (body), Taupe #6B6460 (labels), Gray #9A9591, Ivory #F3F1EE (ground), Paper #fbfaf8 (fields/panels), Black #040303 TEXT ONLY. No black backgrounds.
+- Type (fixed): Tinos (serif) for headlines/prices, Mulish for body + small uppercase labels. Self-hosted via @fontsource.
+- Logos (fixed): public/assets/bg-primary.png (light grounds), bg-reversed.png (navy grounds), firm-nc.png. Waiting on vector versions from Devin.
+- Style = "Home Front" (chosen Oct 2026): sentence-case serif headlines, rounded photo cards and panels (--r / --r-xl), pill buttons and tags, navy sections inset as rounded bands, photo-led hero with a TikTok card. Tokens in src/styles/global.css.
 - Status tags: Just listed/Sold = navy, For sale = taupe, Under contract = brown.
 - Every page footer: The Firm NC logo + TBG logo, "Brokered by The Firm NC · Equal Housing Opportunity", license #.
-- Logos: public/assets/bg-primary.png (light grounds), bg-reversed.png (navy grounds).
+- Tools (src/components/Tools.astro, on home + /military/): BAH → VA price (BAH table + LOAN assumptions in site.ts, update BAH every January), PCS timeline, commute map (Leaflet + OSM tiles, CSS inlined). "Send to Devin" posts kind "tool" to lead.php.
 
 ## Status / next
 - Not yet launched. Repo oliverfeher/thebradygroup was empty; this folder is the repo root.
