@@ -5,7 +5,7 @@ import wilsonPhoto from '../assets/photos/wilson.jpg';
 import smithfieldPhoto from '../assets/photos/smithfield.jpg';
 import raleighPhoto from '../assets/photos/raleigh.jpg';
 import headshotPhoto from '../assets/photos/devin-headshot.jpg';
-import unionStationPhoto from '../assets/photos/union-station.jpg';
+import heroHomePhoto from '../assets/photos/hero-home.jpg';
 import airmenPhoto from '../assets/photos/airmen-parade.jpg';
 
 // Area photos come from Wikimedia Commons. CC BY-SA ones need a visible credit (area page + /photo-credits/).
@@ -20,10 +20,10 @@ export const PHOTO_SET: Record<string, Photo> = {
 };
 export const photoCredit = (p: Photo) => `Photo: ${p.author}, ${p.license}`;
 
-// Site-wide photos. hero/military come from Wikimedia Commons too (credited on /photo-credits/).
-export const HERO_PHOTO: Photo = { src: unionStationPhoto, subject: 'Union Station, downtown Goldsboro', author: 'APK', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Goldsboro_Union_Station.jpg', creditRequired: true };
+// Site-wide photos (credited on /photo-credits/). Hero: Unsplash; military: Wikimedia Commons.
+export const HERO_PHOTO: Photo = { src: heroHomePhoto, subject: 'Southern home with green shutters', author: 'Garrett Butler', license: 'Unsplash License', url: 'https://unsplash.com/photos/white-wooden-house-near-green-trees-during-daytime-B9d-fb8vHyw', creditRequired: false };
 export const MILITARY_PHOTO: Photo = { src: airmenPhoto, subject: 'Seymour Johnson airmen in the Goldsboro Veterans Day parade', author: 'A1C John Nieves Camacho, U.S. Air Force', license: 'Public domain', url: 'https://commons.wikimedia.org/wiki/File:U.S._Airmen_stationed_at_Seymour_Johnson_Air_Force_Base_march_in_a_Veterans_Day_parade_in_Goldsboro,_N.C.,_Nov._11,_2013_131111-F-YG094-269.jpg', creditRequired: false };
-export const PHOTOS = { hero: unionStationPhoto, headshot: headshotPhoto, military: airmenPhoto, goldsboro: goldsboroPhoto };
+export const PHOTOS = { hero: heroHomePhoto, headshot: headshotPhoto, military: airmenPhoto, goldsboro: goldsboroPhoto };
 
 /* ---------- Tools (home page + /military/) ---------- */
 // 2026 BAH, Seymour Johnson AFB MHA (DTMO rates effective Jan 1, 2026). Update every January.
